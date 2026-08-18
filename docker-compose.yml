@@ -1,0 +1,98 @@
+name: resource-booking
+
+x-app-image: &app-image
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    target: runtime
+  image: resource-booking-app:latest
+  env_file: .env
+  environment:
+    TZ: ${APP_TIMEZONE:-Australia/Brisbane}
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+  networks:
+    - backend
+  volumes:
+    - app_storage:/var/www/html/storage
+    - public_uploads:/var/www/html/storage/app/public
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: resource-booking-db
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime
+    image: resource-booking-app:latest
+    container_name: resource-booking-migrate
+    env_file: .env
+    command: ["php", "artisan", "migrate", "--force"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+    volumes:
+      - app_storage:/var/www/html/storage
+      - public_uploads:/var/www/html/storage/app/public
+
+  app:
+    <<: *app-image
+    container_name: resource-booking-app
+
+  queue:
+    <<: *app-image
+    container_name: resource-booking-queue
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600", "--timeout=120"]
+
+  scheduler:
+    <<: *app-image
+    container_name: resource-booking-scheduler
+    command: ["php", "artisan", "schedule:work"]
+
+  webserver:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: webserver
+    image: resource-booking-webserver:latest
+    container_name: resource-booking-webserver
+    depends_on:
+      - app
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - public_uploads:/var/www/html/public/storage
+    restart: unless-stopped
+
+networks:
+  frontend:
+    external: true
+  backend:
+    external: true
+
+volumes:
+  db_data:
+  app_storage:
+  public_uploads:

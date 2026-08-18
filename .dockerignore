@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.example
+README.md
+app/.env
+app/node_modules
+app/vendor
+app/bootstrap/cache/*.php
+app/storage/framework/cache/*
+app/storage/framework/sessions/*
+app/storage/framework/views/*
+app/storage/framework/testing/*
+app/storage/logs/*
+app/public/build
+app/public/storage
+app/database/*.sqlite

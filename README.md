@@ -7,7 +7,8 @@ and other equipment can be added later without code changes.
 Stack: Laravel 13 / PHP 8.4, PostgreSQL (MySQL/MariaDB also supported), Livewire 4 + Alpine.js, Tailwind CSS 4,
 Nginx + PHP-FPM, all behind your existing reverse proxy.
 
-See [docs/BRIEF.md](docs/BRIEF.md) for the original design brief and the reasoning behind the data model.
+See [docs/BRIEF.md](docs/BRIEF.md) for the original design brief and the reasoning behind the data model, and
+[CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Contents
 
@@ -319,36 +320,57 @@ Restore: recreate the volumes, `gunzip | psql` the database dump back in, untar 
 
 ## Updating an existing instance
 
-When a newer version of Kitloan is released and you want to bring an existing deployment up to date:
+Releases are tagged (`v1.0.0`, `v1.1.0`, ...) and every release is listed in [CHANGELOG.md](CHANGELOG.md),
+including any breaking changes. Track tags rather than `main` for a running deployment — `main` can contain
+in-progress work.
 
-1. **Back up first** — see [Backups](#backups). Migrations are one-directional; have a database dump you can
+1. **Read the changelog** between your current version and the target tag, specifically for anything under
+   "Breaking" — that tells you if this upgrade needs extra care beyond the steps below.
+2. **Back up first** — see [Backups](#backups). Migrations are one-directional; have a database dump you can
    restore from before running new ones.
-2. **Pull the new code**:
+3. **Pull the target release**:
    ```bash
-   git pull
+   git fetch --tags
+   git checkout v1.1.0   # replace with the version you're upgrading to
    ```
-3. **Diff your `.env` against the latest `.env.example`** for any new or renamed variables:
+4. **Diff your `.env` against the latest `.env.example`** for any new or renamed variables:
    ```bash
    diff .env.example .env
    ```
    New releases may add settings (they'll have sensible defaults documented in `.env.example`, but review
    them rather than assuming). Never copy `.env.example` over your `.env` wholesale — that would wipe your
    real secrets.
-4. **Rebuild and migrate**:
+5. **Rebuild and migrate**:
    ```bash
    docker compose build
    docker compose run --rm migrate   # runs any new migrations
    docker compose up -d
    ```
-5. **Check the logs** after restart:
+   If a migration fails, the `migrate` service exits non-zero and `app`/`queue`/`scheduler` never start
+   (`depends_on: condition: service_completed_successfully` in `docker-compose.yml`) — you get a stopped
+   stack to investigate, not a half-upgraded one serving traffic against a schema it doesn't expect.
+6. **Check the logs** after restart:
    ```bash
    docker compose logs -f app queue scheduler
    ```
 
 Containers are stateless and disposable — all persistent state lives in the `db_data`, `app_storage` and
 `public_uploads` named volumes, so recreating any container (including `app`/`webserver`) never loses data.
-If something goes wrong, `git checkout <previous-tag-or-commit>`, rebuild, and restore the database backup
-from step 1 — do not attempt to roll back by editing already-applied migrations (see below).
+If something goes wrong, `git checkout <previous-tag>`, rebuild, and restore the database backup from step 2
+— do not attempt to roll back by editing already-applied migrations (see below).
+
+### How releases stay upgrade-safe
+
+- **Migrations are additive within a release.** A destructive schema change (renaming or dropping a column
+  a released version depends on) is split across two releases using expand/contract: release *N* adds the
+  new column and starts writing to it alongside the old one; release *N+1* (after everyone's had a chance to
+  upgrade) drops the old column. Any release doing the "contract" half is called out under "Breaking" in the
+  changelog.
+- **Every migration ships a working `down()`.** This doesn't make upgrades reversible in the general case
+  (a `down()` can't always recover already-transformed data), but it means a failed mid-release migration
+  batch can be unwound cleanly rather than left half-applied.
+- **`ADMIN_SEED_EMAILS` seeding is idempotent** (`firstOrCreate`) — re-running `db:seed` on an upgrade never
+  overwrites a role you've changed via the UI.
 
 **Never edit a migration file that's already run against a real deployment.** Laravel tracks applied
 migrations in the `migrations` table and only runs each one once — editing an already-applied file's contents

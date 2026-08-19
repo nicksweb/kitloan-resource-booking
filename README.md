@@ -15,6 +15,7 @@ See [docs/BRIEF.md](docs/BRIEF.md) for the original design brief and the reasoni
 - [Quick start](#quick-start)
 - [Architecture](#architecture)
 - [Initial administrator access](#initial-administrator-access)
+- [Demo / sample data](#demo--sample-data)
 - [Emergency local admin login](#emergency-local-admin-login)
 - [Admin impersonation](#admin-impersonation)
 - [OIDC configuration](#oidc-configuration)
@@ -27,6 +28,7 @@ See [docs/BRIEF.md](docs/BRIEF.md) for the original design brief and the reasoni
 - [Running the test suite](#running-the-test-suite)
 - [What's implemented vs. simplified](#whats-implemented-vs-simplified)
 - [Configuration checklist](#configuration-checklist)
+- [License](#license)
 
 ## Quick start
 
@@ -134,29 +136,61 @@ docker compose exec app php artisan tinker
 >>> $u->assignRole('administrator');
 ```
 
+## Demo / sample data
+
+`database/seeders/DemoDataSeeder.php` seeds a generic, non-school-specific working example of everything the
+booking system understands: an individually-tracked resource pool ("Exam Laptops", 20 units, 15-minute prep/
+return buffers), a quantity-tracked pool ("Chargers", 30 units, no buffers), five generic locations
+(`B12`/`B14`/`C05`/`C07`/`LIB-1`), and the standard exam booking types (PDF, Word, SEB, Locked Down, etc). It's
+idempotent (`firstOrCreate` throughout), so re-running it is harmless.
+
+It only runs automatically outside `production` (see `DatabaseSeeder::run()`), so a live school deployment
+never gets this fictional data seeded into it by accident. To populate a local/staging instance for a demo or
+to try out a feature before rolling it out to real users:
+
+```bash
+docker compose exec app php artisan db:seed --class=DemoDataSeeder
+```
+
+School-specific reference data — Locations (real rooms) and Schedule Periods (real timetable) — isn't part of
+this seeder; those are meant to be entered for real via **Administration → Locations** (or its CSV import) and
+**Administration → Periods** once, not faked for a demo.
+
 ## Emergency local admin login
 
 A break-glass sign-in that bypasses OIDC entirely, for when the identity provider is down or misconfigured.
-Off by default; controlled by `LOCAL_LOGIN_ENABLED` in `.env` — the feature flag alone doesn't create any
-usable credential though.
+Two switches gate it, both of which must be on:
 
-To actually enable it for a specific administrator account:
+- `LOCAL_LOGIN_ENABLED` in `.env` — the infrastructure-level "does this deployment support local login at all"
+  switch. Off by default; flipping it requires editing `.env` and redeploying.
+- **Local login currently available**, Administration → Settings — the day-to-day on/off switch any
+  administrator can flip from the GUI without touching the server (e.g. turn it off once SSO is confirmed
+  healthy again, back on if it flakes).
 
-```bash
-docker compose exec app php artisan admin:set-local-password admin@example.edu.au
-```
+Setting or changing the actual password for a specific administrator account can be done two ways:
 
-This only works for an existing, enabled account that already holds the `administrator` role — it refuses
-otherwise rather than offering to create or promote one, so it can't be used to escalate privilege. There's no
-web-based "set your password" flow; the only way to set or change this password is that CLI command, run by
-someone with `docker exec` access to the host.
+- **Administration → Users** — each administrator's row has a "Local login" column with Set/Reset and Clear
+  actions.
+- CLI, for scripting/first-time setup before anyone can reach the admin panel:
+  ```bash
+  docker compose exec app php artisan admin:set-local-password admin@example.edu.au
+  ```
 
-When the flag is on, a small "Administrator emergency sign-in" link appears at the bottom of the normal login
-page, going to `/auth/local`. Login there is rate-limited (5 attempts/minute per email+IP, backed off for 60s
-after that) and every attempt — success or failure — is written to the audit log
-(`auth.local_login_succeeded` / `auth.local_login_failed`).
+Both only work for an existing, enabled account that already holds the `administrator` role — refusing
+otherwise rather than offering to create or promote one, so this can't be used to escalate privilege.
 
-Consider turning `LOCAL_LOGIN_ENABLED` back off once OIDC is confirmed stable, to keep the attack surface to a
+When both switches are on, a small "Administrator emergency sign-in" link appears at the bottom of the normal
+login page, going to `/auth/local`. Every attempt — success or failure — is written to the audit log
+(`auth.local_login_succeeded` / `auth.local_login_failed`). Failed attempts are throttled two ways at once:
+
+- 5 attempts/minute per email+IP combination (absorbs an ordinary mistyped password), plus the standard
+  `throttle:10,1` route-level guard shared with the rest of the auth routes.
+- 15 attempts/15 minutes per email address regardless of source IP, so rotating through different IPs doesn't
+  get around it. Crossing 10 failed attempts against one account writes a distinct
+  `auth.local_login_bruteforce_suspected` audit event, so this shows up clearly rather than blending into
+  ordinary failed-login noise.
+
+Consider turning the Settings toggle off once OIDC is confirmed stable, to keep the attack surface to a
 minimum — it's a fallback, not meant to be the everyday admin login path.
 
 ## Admin impersonation
@@ -435,3 +469,7 @@ Before going live on a new instance, double-check:
 - `ADMIN_SEED_EMAILS` lists the people who should land as Administrator on first login.
 - `DB_HOST` is the database container's `container_name`, not the bare Compose service name, if you're
   running other stacks on the same shared Docker network — see [Database configuration](#database-configuration).
+
+## License
+
+[MIT](LICENSE)

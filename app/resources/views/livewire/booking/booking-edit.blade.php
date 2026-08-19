@@ -26,21 +26,10 @@
                     <label class="block text-sm font-medium text-gray-700">Date</label>
                     <input type="date" wire:model.live="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Start</label>
-                        <input type="time" wire:model.live="startTime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Finish</label>
-                        <input type="time" wire:model.live="endTime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                </div>
-
                 @if ($this->periods->isNotEmpty())
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Quick fill from period</label>
-                        <select onchange="if(this.value) { $wire.applyPeriod(this.value); this.value=''; }" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <select @change="if($event.target.value) { $wire.applyPeriod($event.target.value); $event.target.value=''; }" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select a period&hellip;</option>
                             @foreach ($this->periods as $groupName => $groupPeriods)
                                 <optgroup label="{{ $groupName }}">
@@ -52,6 +41,17 @@
                         </select>
                     </div>
                 @endif
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Start</label>
+                        <input type="time" wire:model.live="startTime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Finish</label>
+                        <input type="time" wire:model.live="endTime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                </div>
 
                 @if ($pool->requires_room)
                     <div>

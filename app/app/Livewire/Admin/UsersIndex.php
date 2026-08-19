@@ -3,6 +3,9 @@
 namespace App\Livewire\Admin;
 
 use App\Models\User;
+use App\Services\Audit\AuditLogger;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -27,6 +30,14 @@ class UsersIndex extends Component
     public bool $enabled = true;
 
     public bool $receivesDailySummary = true;
+
+    public bool $showLocalPasswordForm = false;
+
+    public ?int $localPasswordUserId = null;
+
+    public string $newLocalPassword = '';
+
+    public string $newLocalPasswordConfirmation = '';
 
     public function render()
     {
@@ -63,7 +74,7 @@ class UsersIndex extends Component
     {
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$this->editingId],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->editingId)],
             'role' => ['required', 'in:user,it_operator,administrator'],
         ]);
 
@@ -110,5 +121,69 @@ class UsersIndex extends Component
         }
 
         $user->update(['enabled' => ! $user->enabled]);
+    }
+
+    public function openLocalPasswordForm(User $user): void
+    {
+        if (! $user->hasRole('administrator')) {
+            session()->flash('error', 'Local login is restricted to administrators — assign that role first.');
+
+            return;
+        }
+
+        $this->localPasswordUserId = $user->id;
+        $this->newLocalPassword = '';
+        $this->newLocalPasswordConfirmation = '';
+        $this->showLocalPasswordForm = true;
+    }
+
+    public function saveLocalPassword(AuditLogger $auditLogger): void
+    {
+        $data = $this->validate([
+            'newLocalPassword' => ['required', 'string', 'min:12'],
+            'newLocalPasswordConfirmation' => ['required', 'string'],
+        ]);
+
+        if ($data['newLocalPassword'] !== $data['newLocalPasswordConfirmation']) {
+            $this->addError('newLocalPasswordConfirmation', 'Passwords do not match.');
+
+            return;
+        }
+
+        $user = User::findOrFail($this->localPasswordUserId);
+
+        if (! $user->hasRole('administrator')) {
+            $this->addError('newLocalPassword', 'Local login is restricted to administrators.');
+
+            return;
+        }
+
+        // forceFill(), not update() — 'password' is deliberately absent from
+        // User's #[Fillable(...)] list, so update() would silently discard it.
+        $user->forceFill(['password' => Hash::make($data['newLocalPassword'])])->save();
+
+        $auditLogger->log(
+            'auth.local_password_set',
+            "Local emergency-login password set for {$user->email} via admin panel by ".auth()->user()->email,
+            auth()->user(),
+        );
+
+        $this->showLocalPasswordForm = false;
+        $this->newLocalPassword = '';
+        $this->newLocalPasswordConfirmation = '';
+        session()->flash('success', "Local login password updated for {$user->email}.");
+    }
+
+    public function clearLocalPassword(User $user, AuditLogger $auditLogger): void
+    {
+        $user->forceFill(['password' => null])->save();
+
+        $auditLogger->log(
+            'auth.local_password_cleared',
+            "Local emergency-login password cleared for {$user->email} via admin panel by ".auth()->user()->email,
+            auth()->user(),
+        );
+
+        session()->flash('success', "Local login password cleared for {$user->email}.");
     }
 }

@@ -43,6 +43,8 @@ class SettingsIndex extends Component
 
     public ?string $helpdeskReplyToAddress;
 
+    public bool $localLoginEnabled;
+
     public function mount(SettingsRepository $settings): void
     {
         $this->siteName = (string) $settings->get('site_name');
@@ -58,6 +60,7 @@ class SettingsIndex extends Component
         $this->helpdeskReplyToAddress = $settings->get('helpdesk_reply_to_address');
         $this->currentLogoPath = $settings->get('site_logo_path');
         $this->testEmailAddress = auth()->user()->email;
+        $this->localLoginEnabled = (bool) $settings->get('local_login_enabled', true);
     }
 
     public function render()
@@ -124,6 +127,7 @@ class SettingsIndex extends Component
         $settings->set('reference_prefix', $data['referencePrefix']);
         $settings->set('it_notification_address', $data['itNotificationAddress'] ?? '');
         $settings->set('helpdesk_reply_to_address', $data['helpdeskReplyToAddress'] ?? '');
+        $settings->set('local_login_enabled', $this->localLoginEnabled, 'boolean');
 
         session()->flash('success', 'Settings saved.');
     }

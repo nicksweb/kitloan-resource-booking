@@ -58,7 +58,10 @@ class SetLocalAdminPassword extends Command
             return self::FAILURE;
         }
 
-        $user->update(['password' => Hash::make($password)]);
+        // forceFill(), not update() — 'password' is deliberately absent from
+        // User's #[Fillable(...)] list (it's never user-editable via mass
+        // assignment elsewhere), so update() would silently discard it here.
+        $user->forceFill(['password' => Hash::make($password)])->save();
 
         $auditLogger->log(
             'auth.local_password_set',

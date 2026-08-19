@@ -7,12 +7,59 @@ use App\Models\ResourcePool;
 use App\Models\SchedulePeriod;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class BookingWizardSmartsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
+    public function test_mounting_within_school_hours_defaults_to_an_hour_from_now(): void
+    {
+        Carbon::setTestNow(Carbon::parse('today 10:00', config('app.timezone')));
+        $pool = ResourcePool::factory()->quantityTracked(5)->create();
+        $user = User::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->assertSet('date', now(config('app.timezone'))->format('Y-m-d'))
+            ->assertSet('startTime', '11:00')
+            ->assertSet('endTime', '12:00');
+    }
+
+    public function test_mounting_outside_school_hours_defaults_to_next_days_opening_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('today 23:00', config('app.timezone')));
+        $pool = ResourcePool::factory()->quantityTracked(5)->create(['allow_weekends' => true]);
+        $user = User::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->assertSet('date', now(config('app.timezone'))->addDay()->format('Y-m-d'))
+            ->assertSet('startTime', '07:00')
+            ->assertSet('endTime', '08:00');
+    }
+
+    public function test_mounting_outside_hours_before_a_weekend_skips_to_monday_when_the_pool_disallows_weekends(): void
+    {
+        Carbon::setTestNow(Carbon::now(config('app.timezone'))->next(Carbon::FRIDAY)->setTime(23, 0));
+        $pool = ResourcePool::factory()->quantityTracked(5)->create(['allow_weekends' => false]);
+        $user = User::factory()->create();
+
+        $expectedMonday = now(config('app.timezone'))->next(Carbon::MONDAY)->format('Y-m-d');
+
+        Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->assertSet('date', $expectedMonday)
+            ->assertSet('startTime', '07:00');
+    }
 
     public function test_changing_the_start_time_jumps_the_finish_time_an_hour_later(): void
     {

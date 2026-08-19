@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Location;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -62,7 +63,7 @@ class LocationsIndex extends Component
     public function save(): void
     {
         $data = $this->validate([
-            'code' => ['required', 'string', 'max:50', 'unique:locations,code,'.$this->editingId],
+            'code' => ['required', 'string', 'max:50', Rule::unique('locations', 'code')->ignore($this->editingId)],
             'name' => ['required', 'string', 'max:255'],
             'campus' => ['nullable', 'string', 'max:255'],
             'building' => ['nullable', 'string', 'max:255'],

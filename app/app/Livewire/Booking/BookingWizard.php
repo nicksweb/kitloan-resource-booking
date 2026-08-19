@@ -10,6 +10,7 @@ use App\Models\ResourcePool;
 use App\Services\Booking\ApprovalEvaluator;
 use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
+use App\Settings\SettingsRepository;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -47,15 +48,58 @@ class BookingWizard extends Component
 
     public ?string $conflictError = null;
 
-    public function mount(ResourcePool $resourcePool): void
+    public function mount(ResourcePool $resourcePool, SettingsRepository $settings): void
     {
         abort_unless($resourcePool->enabled, 404);
 
         $this->pool = $resourcePool;
-        $this->date = now(config('app.timezone'))->addDay()->format('Y-m-d');
-        $this->startTime = now(config('app.timezone'))->addHour()->startOfHour()->format('H:i');
-        $this->endTime = now(config('app.timezone'))->addHours(2)->startOfHour()->format('H:i');
         $this->useSpecificSelection = $resourcePool->isIndividuallyTracked();
+
+        [$this->date, $this->startTime] = $this->defaultWindow($resourcePool, $settings);
+        $this->endTime = Carbon::createFromFormat('H:i', $this->startTime)->addHour()->format('H:i');
+    }
+
+    /**
+     * Picks a sensible starting point for a new booking instead of always
+     * "an hour from now" — which is a genuinely useless default at, say,
+     * 11pm. Within school hours (with enough of the day left for a 1-hour
+     * booking), that's still "now + 1 hour". Outside school hours, jumps to
+     * the next school day's opening time instead — skipping weekends if the
+     * pool doesn't allow them.
+     *
+     * @return array{0: string, 1: string} [date (Y-m-d), startTime (H:i)]
+     */
+    private function defaultWindow(ResourcePool $resourcePool, SettingsRepository $settings): array
+    {
+        $now = Carbon::now(config('app.timezone'));
+        $schoolStart = (string) $settings->get('school_day_start', '07:00');
+        $schoolFinish = (string) $settings->get('school_day_finish', '17:00');
+
+        [$startHour, $startMinute] = array_map('intval', explode(':', $schoolStart));
+        [$finishHour, $finishMinute] = array_map('intval', explode(':', $schoolFinish));
+
+        $todayStart = $now->copy()->setTime($startHour, $startMinute, 0);
+        $todayFinish = $now->copy()->setTime($finishHour, $finishMinute, 0);
+
+        if ($now->lt($todayStart)) {
+            $date = $now->copy();
+            $start = $todayStart;
+        } elseif ($now->lt($todayFinish->copy()->subHour())) {
+            $date = $now->copy();
+            $start = $now->copy()->addHour()->startOfHour();
+        } else {
+            $date = $now->copy()->addDay()->startOfDay();
+            $start = $date->copy()->setTime($startHour, $startMinute, 0);
+        }
+
+        if (! $resourcePool->allow_weekends) {
+            while ($date->isWeekend()) {
+                $date->addDay();
+                $start->setDate($date->year, $date->month, $date->day);
+            }
+        }
+
+        return [$date->format('Y-m-d'), $start->format('H:i')];
     }
 
     /**

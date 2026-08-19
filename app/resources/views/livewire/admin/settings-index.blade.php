@@ -58,6 +58,21 @@
             </div>
         </div>
 
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 class="text-sm font-semibold text-gray-900">Local (Break-Glass) Login</h2>
+            <p class="mt-1 text-xs text-gray-500">Emergency fallback sign-in for administrators if SSO is unavailable. Manage which admins have a local password under Administration &rarr; Users.</p>
+
+            @if (! config('auth.local_login.enabled'))
+                <p class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">This deployment has local login switched off at the infrastructure level (<code>LOCAL_LOGIN_ENABLED</code> is not set in <code>.env</code>). The toggle below has no effect until that's turned on and the app is redeployed.</p>
+            @endif
+
+            <label class="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" wire:model="localLoginEnabled" class="rounded border-gray-300 text-indigo-600">
+                Local login currently available
+            </label>
+            <p class="mt-1 text-xs text-gray-400">Turn this off day-to-day (e.g. once SSO is confirmed healthy again) without needing server access. Turning it back on does not require a redeploy.</p>
+        </div>
+
         <button wire:click="save" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Save Settings</button>
     </div>
 </div>

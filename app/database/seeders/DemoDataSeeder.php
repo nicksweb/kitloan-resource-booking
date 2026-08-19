@@ -9,13 +9,21 @@ use App\Models\ResourcePool;
 use Illuminate\Database\Seeder;
 
 /**
- * Development/demo data only. Never called automatically in production —
- * see DatabaseSeeder.
+ * Development/demo data only. DatabaseSeeder skips calling this in
+ * production, but that guard lives at the call site — running this class
+ * directly (`db:seed --class=DemoDataSeeder`) would bypass it and seed fake
+ * data into a real school's live database, so the check is repeated here too.
  */
 class DemoDataSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production')) {
+            $this->command?->error('DemoDataSeeder is blocked in production — it seeds fake pools/locations/booking types, which don\'t belong in a real school\'s live database. Run it against a local or staging instance instead.');
+
+            return;
+        }
+
         $laptops = ResourcePool::firstOrCreate(
             ['slug' => 'exam-laptops'],
             [

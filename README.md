@@ -7,8 +7,9 @@ and other equipment can be added later without code changes.
 Stack: Laravel 13 / PHP 8.4, PostgreSQL (MySQL/MariaDB also supported), Livewire 4 + Alpine.js, Tailwind CSS 4,
 Nginx + PHP-FPM, all behind your existing reverse proxy.
 
-See [docs/BRIEF.md](docs/BRIEF.md) for the original design brief and the reasoning behind the data model, and
-[CHANGELOG.md](CHANGELOG.md) for release history.
+See [docs/BRIEF.md](docs/BRIEF.md) for the original design brief and the reasoning behind the data model,
+[CHANGELOG.md](CHANGELOG.md) for release history, and [CONTRIBUTING.md](CONTRIBUTING.md) for the branching and
+pre-deploy workflow this project follows.
 
 ## Contents
 
@@ -434,12 +435,14 @@ docker run --rm --network backend -v "$PWD/app":/var/www/html -w /var/www/html \
 `vendor/bin/phpunit` directly over `php artisan test`; the latter's pretty-printer truncates output in a
 narrow terminal and shows spurious "warnings" that aren't real failures.)
 
-33 tests currently cover: unauthenticated/role-based access control, IDOR protection on booking detail pages,
+84 tests currently cover: unauthenticated/role-based access control, IDOR protection on booking detail pages,
 double-booking prevention, preparation/return buffer enforcement, cancellation releasing resources, quantity
 availability math, auto-approval lead-time boundaries, booking-type-forced approval, manual approve/reject
 (including "reason required"), signed-link expiry and the IT-staff-only requirement on approval links,
-Snipe-IT search/sync (including a simulated Snipe-IT outage and the duplicate-import constraint), and OIDC
-identity matching/collision handling.
+Snipe-IT search/sync (including a simulated Snipe-IT outage and the duplicate-import constraint), OIDC identity
+matching/collision handling, booking amendment (re-approval and notification behaviour), local break-glass
+login (including rate limiting), admin impersonation, CSV location import, and the daily summary email. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the standard way to run and extend this suite as part of a change.
 
 ## What's implemented vs. simplified
 

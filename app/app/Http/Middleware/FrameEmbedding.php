@@ -30,6 +30,12 @@ class FrameEmbedding
     {
         if ($request->query('embed') !== null) {
             $request->session()->put('embedded', $request->boolean('embed', true));
+        } elseif ($request->session()->has('embedded') && $this->isTopLevelNavigation($request)) {
+            // The visitor loaded the app straight into a normal browser tab
+            // (not inside a frame) and without the ?embed marker — they are no
+            // longer embedded. Without this, a session that was ever embedded
+            // keeps its chrome trimmed forever, even in a plain tab.
+            $request->session()->forget('embedded');
         }
 
         /** @var Response $response */
@@ -50,6 +56,22 @@ class FrameEmbedding
         }
 
         return $response;
+    }
+
+    /**
+     * True only for a genuine top-level document load — a browser tab pointed
+     * straight at a URL. Content loading inside an <iframe> reports
+     * `Sec-Fetch-Dest: iframe`, and Livewire's wire:navigate fetches report
+     * `empty`, so neither trips this. The OIDC round-trip is excluded because
+     * its callback can arrive as a top-level navigation even for an embedded
+     * session. Browsers that don't send Sec-Fetch-Dest (pre-2020, or plain
+     * HTTP) simply keep the previous behaviour.
+     */
+    private function isTopLevelNavigation(Request $request): bool
+    {
+        return $request->isMethod('GET')
+            && $request->header('Sec-Fetch-Dest') === 'document'
+            && ! $request->routeIs('auth.*');
     }
 
     /**

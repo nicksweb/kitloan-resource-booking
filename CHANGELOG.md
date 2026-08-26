@@ -4,6 +4,16 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.3.2] - 2026-08-27
+
+### Fixed
+
+- Embedded mode was "sticky": once a session had loaded the app with `?embed=1`, the navigation chrome stayed
+  hidden in that browser even when the site was later opened directly in a normal tab. `FrameEmbedding` now
+  clears the `embedded` session flag on a genuine top-level document navigation (`Sec-Fetch-Dest: document`,
+  no `?embed`), while leaving it intact for framed navigation, `wire:navigate` fetches, and the OIDC
+  round-trip. Browsers that don't send `Sec-Fetch-Dest` keep the previous behaviour.
+
 ## [1.3.1] - 2026-08-27
 
 ### Added

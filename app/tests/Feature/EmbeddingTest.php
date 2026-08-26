@@ -64,6 +64,33 @@ class EmbeddingTest extends TestCase
             ->assertDontSee('Signing you in');
     }
 
+    public function test_opening_the_app_directly_in_a_tab_drops_a_stale_embedded_flag(): void
+    {
+        $user = User::factory()->create();
+
+        // Session was embedded earlier (the iframe on the intranet), then the
+        // user opens the site straight in a normal browser tab: a top-level
+        // document navigation with no ?embed marker.
+        $this->actingAs($user)
+            ->withSession(['embedded' => true])
+            ->withHeaders(['Sec-Fetch-Dest' => 'document'])
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSessionMissing('embedded')
+            // full chrome is back
+            ->assertSee('My Bookings');
+    }
+
+    public function test_framed_navigation_without_the_query_param_keeps_the_embedded_flag(): void
+    {
+        $this->withSession(['embedded' => true])
+            ->withHeaders(['Sec-Fetch-Dest' => 'iframe'])
+            ->get(route('auth.login'))
+            ->assertOk()
+            ->assertSessionHas('embedded', true)
+            ->assertSee('Signing you in');
+    }
+
     public function test_silent_route_sends_an_authenticated_user_straight_home(): void
     {
         $user = User::factory()->create();

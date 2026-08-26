@@ -4,6 +4,67 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.2.0] - 2026-08-26
+
+No breaking changes. All migrations in this release are additive; `down()` works for each. Upgrade with the
+normal procedure in [Updating an existing instance](README.md#updating-an-existing-instance) — which is now a
+single `kitloan:upgrade` command (see below).
+
+### Added
+
+- **Version awareness + one-command upgrade.** The running version is now a real value: `app/VERSION` /
+  `config/version.php`, surfaced at `GET /health` (`"version"`), in the Administration tab bar, and recorded in
+  the settings table once an upgrade completes. New `php artisan kitloan:upgrade` runs migrations, backfills
+  new roles/settings, clears every compiled cache (config/routes/**views**/events) and re-caches, restarts
+  queue workers, and stamps the installed version — idempotent, and refuses to run on an instance too old to
+  upgrade directly. The Compose `migrate` service now runs it. Full walk-through in
+  [docs/UPGRADING.md](docs/UPGRADING.md).
+- **Iframe embedding allow-list** (Administration → Settings → Embedding). Off by default. When on, only the
+  listed parent origins may frame the app (`Content-Security-Policy: frame-ancestors`), the session cookie is
+  promoted to `SameSite=None; Secure` so an existing session survives inside a cross-site frame, and an
+  embedded page (`?embed=1`) trims its chrome and attempts a **silent SSO sign-in** (`prompt=none`) before
+  showing a login button — a visitor already signed in to the identity provider elsewhere lands straight on
+  their bookings.
+- **TOTP two-factor authentication for local (non-SSO) admin accounts.** Any account with a break-glass
+  password *and* the administrator role must enrol (authenticator app QR + 8 single-use recovery codes) and is
+  challenged for a code after the password on every local sign-in. Pure-SSO accounts are never prompted — the
+  identity provider owns their MFA. Administration → Users shows 2FA status and can reset it for an admin who
+  has lost their device.
+- **Account lockout on repeated local-login failures.** After 10 failed attempts against one account (any
+  IP, or 10 bad 2FA codes) the account is locked for 15 minutes via a stored `locked_until` stamp that
+  survives a cache flush, an `auth.local_login_locked` audit event is written, and IT is emailed.
+- **Delete across the Administration catalog.** Resource Pools, Locations and Booking Types can now be deleted
+  (soft-delete — existing bookings and audit history are untouched; the item just stops appearing for new
+  ones). Deleting a resource pool is refused while it still has upcoming bookings.
+- **Users can be deleted** (soft-delete; bookings/audit preserved, the account can no longer sign in). Refused
+  for your own account and the last enabled administrator.
+- **Resource Pool JSON import/export**, including nested resources — Export/Import buttons on Administration →
+  Resource Pools, with a worked example at `app/resources/examples/resource-pools.json`.
+- **Bulk campus rename** (Administration → Locations → "Rename campus") — retitle or consolidate a campus
+  across every location at once.
+- **Configuration export / import** (Administration → Settings): "Export settings", "Export full
+  configuration", and a sectioned "Import…" covering settings, locations, resource pools, booking types,
+  schedule periods and approval rules. Secrets are never included; import is upsert-only and never deletes.
+- **Searchable room picker** on the booking wizard and amend screens — the location list is now a filterable
+  combobox instead of a long native `<select>`.
+
+### Changed
+
+- Amending an **already-approved** booking to request **more** units now always sends it back to "pending" for
+  re-approval, regardless of the auto-approval thresholds. Reducing the quantity (or leaving it unchanged)
+  keeps the existing approval. IT/admin amendments are unaffected.
+- The local-login per-account brute-force limit dropped from 15 to 10 failures, and now applies a real lock
+  (see Added) rather than only writing an audit event. The `auth.local_login_bruteforce_suspected` audit
+  event is replaced by `auth.local_login_locked`.
+
+### Fixed
+
+- **"Quick fill from period" did nothing / threw `$wire is not defined`.** The `<select>` called the Alpine
+  `$wire` magic from a bare `@change` handler, which only resolves inside an Alpine component scope — and a
+  stale compiled Blade template on an un-migrated instance could still be the older `onchange=` version.
+  Rebuilt as a plain Livewire `wire:model.live` binding with no Alpine involvement; `kitloan:upgrade` also
+  now clears compiled views on every upgrade so a stale template can't linger.
+
 ## [1.1.0] - 2026-08-19
 
 ### Added

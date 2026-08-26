@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Admin\UsersIndex;
 use App\Models\User;
 use App\Services\Auth\TwoFactorAuthenticator;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
@@ -132,7 +135,7 @@ class TwoFactorAuthTest extends TestCase
         // The lockout is driven by the per-account counter in the controller,
         // not the route throttle — bypass the latter so we can actually make
         // ten attempts in the test.
-        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+        $this->withoutMiddleware(ThrottleRequests::class);
 
         $secret = app(TwoFactorAuthenticator::class)->generateSecret();
         $admin = $this->localAdmin([
@@ -165,8 +168,8 @@ class TwoFactorAuthTest extends TestCase
             'two_factor_confirmed_at' => now(),
         ]);
 
-        \Livewire\Livewire::actingAs($actor)
-            ->test(\App\Livewire\Admin\UsersIndex::class)
+        Livewire::actingAs($actor)
+            ->test(UsersIndex::class)
             ->call('clearTwoFactor', $target->id);
 
         $this->assertNull($target->fresh()->two_factor_confirmed_at);

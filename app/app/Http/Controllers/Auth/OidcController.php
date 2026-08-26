@@ -6,6 +6,7 @@ use App\Exceptions\OidcIdentityException;
 use App\Http\Controllers\Controller;
 use App\Services\Auth\UserProvisioningService;
 use App\Services\Oidc\OidcClient;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class OidcController extends Controller
 {
-    public function showLogin(Request $request): \Illuminate\Contracts\View\View
+    public function showLogin(Request $request): View
     {
         return view('auth.login');
     }

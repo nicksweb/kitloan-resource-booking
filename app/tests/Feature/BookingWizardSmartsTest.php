@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Booking\BookingWizard;
+use App\Models\Location;
 use App\Models\ResourcePool;
 use App\Models\SchedulePeriod;
 use App\Models\User;
@@ -109,7 +110,7 @@ class BookingWizardSmartsTest extends TestCase
     {
         $pool = ResourcePool::factory()->quantityTracked(5)->create(['requires_room' => true]);
         $user = User::factory()->create();
-        \App\Models\Location::factory()->create(['code' => 'A1', 'name' => 'Science Lab']);
+        Location::factory()->create(['code' => 'A1', 'name' => 'Science Lab']);
 
         Livewire::actingAs($user)
             ->test(BookingWizard::class, ['resourcePool' => $pool])

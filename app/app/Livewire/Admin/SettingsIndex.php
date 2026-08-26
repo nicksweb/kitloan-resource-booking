@@ -176,7 +176,7 @@ class SettingsIndex extends Component
     private function downloadBundle(array $bundle, string $prefix)
     {
         return response()->streamDownload(
-            fn () => print(json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            fn () => print (json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
             $prefix.'-'.now()->format('Y-m-d').'.json',
             ['Content-Type' => 'application/json'],
         );

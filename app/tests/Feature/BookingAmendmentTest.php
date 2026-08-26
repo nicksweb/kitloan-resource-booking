@@ -10,7 +10,9 @@ use App\Models\Location;
 use App\Models\Resource;
 use App\Models\ResourcePool;
 use App\Models\User;
+use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
+use App\Settings\SettingsRepository;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -79,7 +81,7 @@ class BookingAmendmentTest extends TestCase
         $this->assertSame($laptopB->id, $activeAllocations->first()->resource_id);
 
         // laptopA must now be free again for someone else at that same time.
-        $freeAgain = app(\App\Services\Booking\AvailabilityService::class)
+        $freeAgain = app(AvailabilityService::class)
             ->isResourceAvailable($laptopA, $pool, $booking->start_at, $booking->end_at);
         $this->assertTrue($freeAgain);
     }
@@ -188,7 +190,7 @@ class BookingAmendmentTest extends TestCase
 
     public function test_amending_the_quantity_while_staying_approved_notifies_it_and_owner(): void
     {
-        app(\App\Settings\SettingsRepository::class)->set('it_notification_address', 'it@example.com');
+        app(SettingsRepository::class)->set('it_notification_address', 'it@example.com');
 
         $pool = ResourcePool::factory()->quantityTracked(10)->create();
         $owner = User::factory()->create();
@@ -224,7 +226,7 @@ class BookingAmendmentTest extends TestCase
 
     public function test_amending_into_the_lead_time_window_sends_it_a_re_approval_request(): void
     {
-        app(\App\Settings\SettingsRepository::class)->set('it_notification_address', 'it@example.com');
+        app(SettingsRepository::class)->set('it_notification_address', 'it@example.com');
 
         $pool = ResourcePool::factory()->create(['minimum_lead_time_minutes' => 0]);
         $laptop = Resource::factory()->create(['resource_pool_id' => $pool->id]);
@@ -308,7 +310,7 @@ class BookingAmendmentTest extends TestCase
 
     public function test_saving_with_no_actual_changes_sends_no_notifications(): void
     {
-        app(\App\Settings\SettingsRepository::class)->set('it_notification_address', 'it@example.com');
+        app(SettingsRepository::class)->set('it_notification_address', 'it@example.com');
 
         $pool = ResourcePool::factory()->create();
         $laptop = Resource::factory()->create(['resource_pool_id' => $pool->id]);

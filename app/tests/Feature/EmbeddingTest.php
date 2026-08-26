@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Settings\SettingsRepository;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -65,7 +66,7 @@ class EmbeddingTest extends TestCase
 
     public function test_silent_route_sends_an_authenticated_user_straight_home(): void
     {
-        $user = \App\Models\User::factory()->create();
+        $user = User::factory()->create();
 
         $this->actingAs($user)->get(route('auth.silent'))->assertRedirect(route('home'));
     }

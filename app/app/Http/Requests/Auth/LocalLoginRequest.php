@@ -4,9 +4,11 @@ namespace App\Http\Requests\Auth;
 
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Settings\SettingsRepository;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -105,18 +107,18 @@ class LocalLoginRequest extends FormRequest
 
         $auditLogger->log(
             'auth.local_login_locked',
-            "Local login for {$email} locked for ".self::LOCK_MINUTES." minutes after ".self::MAX_ACCOUNT_FAILURES." failed attempts — possible brute-force attempt"
+            "Local login for {$email} locked for ".self::LOCK_MINUTES.' minutes after '.self::MAX_ACCOUNT_FAILURES.' failed attempts — possible brute-force attempt'
         );
 
         if ($user) {
             $user->forceFill(['locked_until' => now()->addMinutes(self::LOCK_MINUTES)])->save();
         }
 
-        $itAddress = app(\App\Settings\SettingsRepository::class)->get('it_notification_address');
+        $itAddress = app(SettingsRepository::class)->get('it_notification_address');
         if ($itAddress) {
             try {
-                \Illuminate\Support\Facades\Mail::raw(
-                    "Local (break-glass) login for {$email} was locked for ".self::LOCK_MINUTES." minutes at ".now()->toDateTimeString()." after ".self::MAX_ACCOUNT_FAILURES." failed attempts from {$this->ip()}.",
+                Mail::raw(
+                    "Local (break-glass) login for {$email} was locked for ".self::LOCK_MINUTES.' minutes at '.now()->toDateTimeString().' after '.self::MAX_ACCOUNT_FAILURES." failed attempts from {$this->ip()}.",
                     fn ($m) => $m->to($itAddress)->subject('Kitloan: local login locked after repeated failures')
                 );
             } catch (\Throwable) {

@@ -55,11 +55,17 @@ checklist exists to make that structurally hard to repeat.
 - Follow [Semantic Versioning](https://semver.org/): a release doing the "contract" half of an expand/contract
   schema change (see [README.md](README.md#how-releases-stay-upgrade-safe)) bumps the major version; anything
   else purely additive is a minor bump; pure bug fixes with no new capability are a patch bump.
-- Every release gets a [CHANGELOG.md](CHANGELOG.md) entry (Added/Fixed/Breaking) *before* tagging — the
-  changelog is what an operator reads to decide whether an upgrade needs extra care, so it can't be an
-  afterthought written after the fact.
+- **Bump the version number** in both `VERSION` and `app/VERSION` (keep them identical — `config/version.php`
+  reads `app/VERSION`, which is what ships in the image). If this release does a "contract" half, also bump
+  `min_upgrade_from` in `app/config/version.php` to the release that shipped the matching "expand" half.
+- Every release gets a [CHANGELOG.md](CHANGELOG.md) entry (Added/Changed/Fixed/Breaking) *before* tagging —
+  the changelog is what an operator reads to decide whether an upgrade needs extra care, so it can't be an
+  afterthought written after the fact. Keep the top heading's version in sync with `VERSION`.
 - Tag every release (`git tag -a vX.Y.Z -m "..."`) and push the tag along with `main`. Deployed instances track
   tags, not `main` — see [README.md § Updating an existing instance](README.md#updating-an-existing-instance).
+- Deployed instances finish an upgrade with `php artisan kitloan:upgrade` (the Compose `migrate` service runs
+  it). It already clears compiled views on every run, so the "`view:clear` on deploy" habit is now enforced by
+  the tooling rather than left to memory.
 
 ## Schema changes
 

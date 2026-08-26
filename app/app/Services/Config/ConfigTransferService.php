@@ -10,6 +10,7 @@ use App\Models\ResourcePool;
 use App\Models\SchedulePeriod;
 use App\Models\Setting;
 use App\Settings\SettingsRepository;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
@@ -444,7 +445,7 @@ class ConfigTransferService
         return ['created' => $created, 'updated' => $updated, 'skipped' => $skipped];
     }
 
-    private function applyTrash(\Illuminate\Database\Eloquent\Model $model, bool $shouldBeTrashed): void
+    private function applyTrash(Model $model, bool $shouldBeTrashed): void
     {
         if (! method_exists($model, 'trashed')) {
             return;

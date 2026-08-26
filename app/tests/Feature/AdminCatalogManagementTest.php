@@ -11,6 +11,7 @@ use App\Models\Resource;
 use App\Models\ResourcePool;
 use App\Models\User;
 use App\Services\Booking\BookingService;
+use App\Services\Config\ConfigTransferService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -118,7 +119,7 @@ class AdminCatalogManagementTest extends TestCase
         $pool = ResourcePool::factory()->create(['name' => 'Exam Laptops', 'slug' => 'exam-laptops']);
         Resource::factory()->create(['resource_pool_id' => $pool->id, 'name' => 'Laptop 01', 'asset_number' => 'KL-1']);
 
-        $transfer = app(\App\Services\Config\ConfigTransferService::class);
+        $transfer = app(ConfigTransferService::class);
         $bundle = $transfer->export(['resource_pools']);
 
         // Wipe and re-import.
@@ -137,7 +138,7 @@ class AdminCatalogManagementTest extends TestCase
     {
         $json = json_decode(file_get_contents(resource_path('examples/resource-pools.json')), true);
 
-        $result = app(\App\Services\Config\ConfigTransferService::class)->import($json, ['resource_pools']);
+        $result = app(ConfigTransferService::class)->import($json, ['resource_pools']);
 
         $this->assertTrue($result['ok']);
         $this->assertDatabaseHas('resource_pools', ['slug' => 'exam-laptops', 'allocation_mode' => 'individual']);

@@ -160,7 +160,7 @@ class LocationsIndex extends Component
         $bundle = $transfer->export(['locations']);
 
         return response()->streamDownload(
-            fn () => print(json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            fn () => print (json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
             'kitloan-locations-'.now()->format('Y-m-d').'.json',
             ['Content-Type' => 'application/json'],
         );

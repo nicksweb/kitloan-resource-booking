@@ -7,11 +7,14 @@ use App\Models\BookingType;
 use App\Models\Location;
 use App\Models\Resource;
 use App\Models\ResourcePool;
+use App\Models\SchedulePeriod;
+use App\Services\Auth\ImpersonationManager;
 use App\Services\Booking\ApprovalEvaluator;
 use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
 use App\Settings\SettingsRepository;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -129,7 +132,7 @@ class BookingWizard extends Component
 
     public function applyPeriod(int $periodId): void
     {
-        $period = \App\Models\SchedulePeriod::find($periodId);
+        $period = SchedulePeriod::find($periodId);
         if (! $period) {
             return;
         }
@@ -170,7 +173,7 @@ class BookingWizard extends Component
     #[Computed]
     public function periods()
     {
-        return \App\Models\SchedulePeriod::enabled()->ordered()->get()->groupBy('group_name');
+        return SchedulePeriod::enabled()->ordered()->get()->groupBy('group_name');
     }
 
     #[Computed]
@@ -193,7 +196,7 @@ class BookingWizard extends Component
     }
 
     #[Computed]
-    public function resourceGrid(): ?\Illuminate\Support\Collection
+    public function resourceGrid(): ?Collection
     {
         if (! $this->pool->isIndividuallyTracked() || ! $this->window()) {
             return null;
@@ -314,7 +317,7 @@ class BookingWizard extends Component
         // (the impersonated user, if impersonating); created_by is the real
         // actor — an admin impersonating someone to book on their behalf
         // should show up as such in the audit trail, not as the user itself.
-        $actor = app(\App\Services\Auth\ImpersonationManager::class)->actor() ?? auth()->user();
+        $actor = app(ImpersonationManager::class)->actor() ?? auth()->user();
 
         try {
             $booking = $bookingService->create([

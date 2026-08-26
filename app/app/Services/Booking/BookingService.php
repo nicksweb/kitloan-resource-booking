@@ -8,7 +8,6 @@ use App\Exceptions\BookingConflictException;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\BookingResourceAllocation;
-use App\Models\Resource;
 use App\Models\ResourcePool;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;

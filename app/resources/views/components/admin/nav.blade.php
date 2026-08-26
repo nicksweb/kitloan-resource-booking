@@ -18,12 +18,13 @@
     }
 @endphp
 <div class="mb-6 border-b border-gray-200">
-    <nav class="-mb-px flex gap-6 overflow-x-auto">
+    <nav class="-mb-px flex items-center gap-6 overflow-x-auto">
         @foreach ($links as $link)
             <a href="{{ route($link['route']) }}"
                class="whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium {{ request()->routeIs($link['pattern']) ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }}">
                 {{ $link['label'] }}
             </a>
         @endforeach
+        <span class="ml-auto whitespace-nowrap py-3 text-xs text-gray-400">Kitloan v{{ config('version.app') }}</span>
     </nav>
 </div>

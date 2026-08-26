@@ -18,6 +18,7 @@ class HealthController extends Controller
 
         $body = [
             'application' => 'healthy',
+            'version' => config('version.app'),
             'database' => $databaseHealthy ? 'healthy' : 'unhealthy',
             'integrations' => [
                 // Snipe-IT availability is reported separately and never fails

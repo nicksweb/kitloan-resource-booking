@@ -24,6 +24,7 @@ pre-deploy workflow this project follows.
 - [SMTP / notifications configuration](#smtp--notifications-configuration)
 - [Snipe-IT integration](#snipe-it-integration)
 - [Reverse proxy](#reverse-proxy)
+- [Embedding](#embedding)
 - [Backups](#backups)
 - [Updating an existing instance](#updating-an-existing-instance)
 - [Running the test suite](#running-the-test-suite)
@@ -182,14 +183,25 @@ otherwise rather than offering to create or promote one, so this can't be used t
 
 When both switches are on, a small "Administrator emergency sign-in" link appears at the bottom of the normal
 login page, going to `/auth/local`. Every attempt — success or failure — is written to the audit log
-(`auth.local_login_succeeded` / `auth.local_login_failed`). Failed attempts are throttled two ways at once:
+(`auth.local_login_succeeded` / `auth.local_login_failed`). Failed attempts are throttled, and repeated
+failure locks the account:
 
 - 5 attempts/minute per email+IP combination (absorbs an ordinary mistyped password), plus the standard
   `throttle:10,1` route-level guard shared with the rest of the auth routes.
-- 15 attempts/15 minutes per email address regardless of source IP, so rotating through different IPs doesn't
-  get around it. Crossing 10 failed attempts against one account writes a distinct
-  `auth.local_login_bruteforce_suspected` audit event, so this shows up clearly rather than blending into
-  ordinary failed-login noise.
+- **10 failed attempts against one account** (any IP, or 10 bad 2FA codes) locks that account for 15 minutes.
+  The lock is a stored `locked_until` stamp, so it survives a cache flush; it writes an
+  `auth.local_login_locked` audit event and emails the IT notification address if one is configured.
+
+### Two-factor authentication (local admins)
+
+Because a local password sidesteps the identity provider's own MFA, any account that has a break-glass
+password **and** the administrator role must protect it with TOTP two-factor authentication. On its next
+sign-in the account is sent to an enrolment screen (authenticator-app QR code + eight single-use recovery
+codes); after that, every local sign-in asks for a 6-digit code (or a recovery code) after the password.
+
+Pure-SSO accounts — no local password — are never prompted; their identity provider handles MFA. If an
+administrator loses their authenticator device, another administrator can clear their enrolment from
+**Administration → Users** (the "2FA" column → Reset), which forces fresh enrolment on the next sign-in.
 
 Consider turning the Settings toggle off once OIDC is confirmed stable, to keep the attack surface to a
 minimum — it's a fallback, not meant to be the everyday admin login path.
@@ -339,6 +351,31 @@ The app trusts the proxy for `X-Forwarded-*` headers (`bootstrap/app.php` → `t
 here because the app container publishes no host port and is only reachable via the internal Docker networks,
 so there's no path for a client to spoof those headers directly.
 
+## Embedding
+
+By default Kitloan can only be framed by itself (`X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'`,
+set by `App\Http\Middleware\FrameEmbedding` — nginx no longer sends a static header).
+
+To embed it in another site (an intranet, a staff portal):
+
+1. **Administration → Settings → Embedding** — tick "Allow embedding" and list the parent origins, one per
+   line (scheme + host, e.g. `https://intranet.example.edu`).
+2. Add the iframe on the parent page (the Settings screen shows a ready-made snippet):
+   ```html
+   <iframe src="https://<your-kitloan-host>/?embed=1" style="width:100%;height:800px;border:0"></iframe>
+   ```
+
+With embedding on, the app also:
+
+- promotes the session cookie to `SameSite=None; Secure` (needs HTTPS) so an existing Kitloan session works
+  inside the cross-site frame — set `SESSION_SAME_SITE`/`SESSION_SECURE_COOKIE` in `.env` to override;
+- trims its own navigation chrome for `?embed=1` visitors;
+- attempts a **silent SSO sign-in** (`prompt=none`) when the visitor has no Kitloan session yet, so someone
+  already signed in to your identity provider elsewhere is logged in with no click. If the provider can't do
+  it silently, the normal "Sign in" button is shown.
+
+`frame-ancestors` is enforced by the browser, so an origin not on the list simply can't render the frame.
+
 ## Backups
 
 Three things need backing up:
@@ -375,19 +412,25 @@ in-progress work.
    New releases may add settings (they'll have sensible defaults documented in `.env.example`, but review
    them rather than assuming). Never copy `.env.example` over your `.env` wholesale — that would wipe your
    real secrets.
-5. **Rebuild and migrate**:
+5. **Rebuild and run the upgrade**:
    ```bash
    docker compose build
-   docker compose run --rm migrate   # runs any new migrations
+   docker compose run --rm migrate   # runs `php artisan kitloan:upgrade`
    docker compose up -d
    ```
-   If a migration fails, the `migrate` service exits non-zero and `app`/`queue`/`scheduler` never start
-   (`depends_on: condition: service_completed_successfully` in `docker-compose.yml`) — you get a stopped
-   stack to investigate, not a half-upgraded one serving traffic against a schema it doesn't expect.
-6. **Check the logs** after restart:
+   The `migrate` service now runs `kitloan:upgrade`, which migrates, backfills any new roles/settings, clears
+   every compiled cache (**views** — on the shared `app_storage` volume, so this reaches the app containers —
+   plus config/routes/events), restarts queue workers, and records the installed version. It's idempotent,
+   and it refuses to run on an instance older than the release's `min_upgrade_from` (upgrade through an
+   intermediate tag first). If it fails, it exits non-zero and `app`/`queue`/`scheduler` never start
+   (`depends_on: condition: service_completed_successfully`) — you get a stopped stack to investigate, not a
+   half-upgraded one.
+6. **Verify the version and health**:
    ```bash
+   curl -s https://<host>/health | jq '.version, .database'
    docker compose logs -f app queue scheduler
    ```
+   `.version` should match the tag you deployed.
 
 Containers are stateless and disposable — all persistent state lives in the `db_data`, `app_storage` and
 `public_uploads` named volumes, so recreating any container (including `app`/`webserver`) never loses data.

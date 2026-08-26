@@ -203,7 +203,7 @@ class ResourcePoolsIndex extends Component
         $filename = 'kitloan-resource-pools-'.now()->format('Y-m-d').'.json';
 
         return response()->streamDownload(
-            fn () => print(json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            fn () => print (json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
             $filename,
             ['Content-Type' => 'application/json'],
         );

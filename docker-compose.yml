@@ -46,7 +46,12 @@ services:
     image: resource-booking-app:latest
     container_name: resource-booking-migrate
     env_file: .env
-    command: ["php", "artisan", "migrate", "--force"]
+    # Runs migrations, backfills new roles/settings, clears every compiled
+    # cache (so a stale Blade template can't survive an upgrade) and records
+    # the installed version. Safe to re-run; exits non-zero on any failure, so
+    # `depends_on: service_completed_successfully` keeps app/queue/scheduler
+    # from starting against a half-upgraded instance.
+    command: ["php", "artisan", "kitloan:upgrade"]
     depends_on:
       db:
         condition: service_healthy

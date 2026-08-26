@@ -50,6 +50,12 @@ class BookingEdit extends Component
 
     public ?string $conflictError = null;
 
+    /**
+     * Scratch binding for the "quick fill from period" <select> — see the
+     * matching note in BookingWizard.
+     */
+    public ?int $quickPeriodId = null;
+
     public function mount(Booking $booking): void
     {
         $this->authorize('update', $booking);
@@ -114,6 +120,15 @@ class BookingEdit extends Component
 
         $this->startTime = $period->start_time->format('H:i');
         $this->endTime = $period->end_time->format('H:i');
+    }
+
+    public function updatedQuickPeriodId($value): void
+    {
+        if ($value) {
+            $this->applyPeriod((int) $value);
+        }
+
+        $this->quickPeriodId = null;
     }
 
     #[Computed]

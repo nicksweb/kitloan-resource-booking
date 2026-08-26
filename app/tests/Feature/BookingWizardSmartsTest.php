@@ -88,6 +88,36 @@ class BookingWizardSmartsTest extends TestCase
             ->assertSet('endTime', '09:58');
     }
 
+    public function test_quick_fill_select_binding_applies_the_period_and_resets_itself(): void
+    {
+        $pool = ResourcePool::factory()->quantityTracked(5)->create();
+        $user = User::factory()->create();
+        $period = SchedulePeriod::factory()->create([
+            'group_name' => 'Senior School', 'name' => 'Period 2',
+            'start_time' => '10:05:00', 'end_time' => '11:15:00',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->set('quickPeriodId', $period->id)
+            ->assertSet('startTime', '10:05')
+            ->assertSet('endTime', '11:15')
+            ->assertSet('quickPeriodId', null);
+    }
+
+    public function test_room_picker_renders_as_a_searchable_select(): void
+    {
+        $pool = ResourcePool::factory()->quantityTracked(5)->create(['requires_room' => true]);
+        $user = User::factory()->create();
+        \App\Models\Location::factory()->create(['code' => 'A1', 'name' => 'Science Lab']);
+
+        Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->assertOk()
+            ->assertSee('Search rooms…')
+            ->assertSee('A1 — Science Lab');
+    }
+
     public function test_disabled_periods_are_not_offered(): void
     {
         $pool = ResourcePool::factory()->quantityTracked(5)->create();

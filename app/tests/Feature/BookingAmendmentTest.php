@@ -245,6 +245,67 @@ class BookingAmendmentTest extends TestCase
         Mail::assertNotQueued(BookingAmendedMail::class);
     }
 
+    /** A weekday, well inside school hours and past every auto-approval threshold. */
+    private function safeWindow(): array
+    {
+        $start = now()->addDays(3)->setTime(10, 0);
+        while ($start->isWeekend()) {
+            $start->addDay();
+        }
+
+        return [$start->copy(), $start->copy()->addHour()];
+    }
+
+    public function test_owner_increasing_quantity_on_an_approved_booking_reverts_to_pending(): void
+    {
+        $pool = ResourcePool::factory()->quantityTracked(20)->create(['minimum_lead_time_minutes' => 0]);
+        $owner = User::factory()->create();
+        $service = app(BookingService::class);
+        [$start, $end] = $this->safeWindow();
+
+        $booking = $service->create([
+            'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
+            'start_at' => $start, 'end_at' => $end,
+            'notes' => null, 'students' => [],
+            'items' => [['resource_pool_id' => $pool->id, 'quantity' => 4, 'resource_ids' => null]],
+        ], $owner, $owner);
+        $this->assertSame('approved', $booking->approval_status);
+
+        $updated = $service->update($booking, [
+            'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
+            'start_at' => $booking->start_at, 'end_at' => $booking->end_at,
+            'notes' => null, 'students' => [],
+            'items' => [['resource_pool_id' => $pool->id, 'quantity' => 9, 'resource_ids' => null]],
+        ], $owner);
+
+        $this->assertSame('pending', $updated->approval_status);
+    }
+
+    public function test_owner_reducing_quantity_on_an_approved_booking_stays_approved(): void
+    {
+        $pool = ResourcePool::factory()->quantityTracked(20)->create(['minimum_lead_time_minutes' => 0]);
+        $owner = User::factory()->create();
+        $service = app(BookingService::class);
+        [$start, $end] = $this->safeWindow();
+
+        $booking = $service->create([
+            'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
+            'start_at' => $start, 'end_at' => $end,
+            'notes' => null, 'students' => [],
+            'items' => [['resource_pool_id' => $pool->id, 'quantity' => 9, 'resource_ids' => null]],
+        ], $owner, $owner);
+        $this->assertSame('approved', $booking->approval_status);
+
+        $updated = $service->update($booking, [
+            'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
+            'start_at' => $booking->start_at, 'end_at' => $booking->end_at,
+            'notes' => null, 'students' => [],
+            'items' => [['resource_pool_id' => $pool->id, 'quantity' => 4, 'resource_ids' => null]],
+        ], $owner);
+
+        $this->assertSame('approved', $updated->approval_status);
+    }
+
     public function test_saving_with_no_actual_changes_sends_no_notifications(): void
     {
         app(\App\Settings\SettingsRepository::class)->set('it_notification_address', 'it@example.com');

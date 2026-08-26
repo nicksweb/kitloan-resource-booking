@@ -48,6 +48,15 @@ class BookingWizard extends Component
 
     public ?string $conflictError = null;
 
+    /**
+     * Scratch binding for the "quick fill from period" <select>. Bound with
+     * wire:model.live so picking an option round-trips to updatedQuickPeriodId()
+     * server-side — no Alpine `$wire` call from the blade (that was the cause of
+     * the "$wire is not defined" error when the select sat outside any Alpine
+     * component scope).
+     */
+    public ?int $quickPeriodId = null;
+
     public function mount(ResourcePool $resourcePool, SettingsRepository $settings): void
     {
         abort_unless($resourcePool->enabled, 404);
@@ -127,6 +136,17 @@ class BookingWizard extends Component
 
         $this->startTime = $period->start_time->format('H:i');
         $this->endTime = $period->end_time->format('H:i');
+    }
+
+    public function updatedQuickPeriodId($value): void
+    {
+        if ($value) {
+            $this->applyPeriod((int) $value);
+        }
+
+        // Snap the control back to its placeholder — it's a one-shot action,
+        // not a field whose value we keep.
+        $this->quickPeriodId = null;
     }
 
     #[Title('Book Resources')]

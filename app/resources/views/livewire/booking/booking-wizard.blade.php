@@ -23,7 +23,7 @@
                 @if ($this->periods->isNotEmpty())
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Quick fill from period</label>
-                        <select @change="if($event.target.value) { $wire.applyPeriod($event.target.value); $event.target.value=''; }" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <select wire:model.live="quickPeriodId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select a period&hellip;</option>
                             @foreach ($this->periods as $groupName => $groupPeriods)
                                 <optgroup label="{{ $groupName }}">
@@ -50,12 +50,12 @@
                 @if ($pool->requires_room)
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Room</label>
-                        <select wire:model="locationId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">Select a room&hellip;</option>
-                            @foreach ($this->locations as $location)
-                                <option value="{{ $location->id }}">{{ $location->code }} &mdash; {{ $location->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select
+                            wire:model="locationId"
+                            :options="$this->locations->map(fn ($l) => ['value' => $l->id, 'label' => $l->code.' — '.$l->name])"
+                            placeholder="Select a room…"
+                            search-placeholder="Search rooms…"
+                        />
                         @error('locationId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                 @endif

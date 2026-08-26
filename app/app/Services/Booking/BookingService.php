@@ -175,7 +175,11 @@ class BookingService
      * have approval authority — forcing their own edit back to "pending"
      * would just be friction). An edit by the booking's owner re-runs the
      * full auto-approval evaluation, exactly like a new booking, since they
-     * aren't authorised to self-approve.
+     * aren't authorised to self-approve — and, additionally, an owner who
+     * increases the requested quantity on an *already-approved* booking always
+     * lands back in "pending", even if the new quantity would still have
+     * auto-approved on a fresh booking. Reducing the quantity (or leaving it
+     * unchanged) keeps the existing approval.
      *
      * @throws BookingConflictException when validation or availability fails
      */
@@ -197,8 +201,12 @@ class BookingService
 
         $before = $booking->only(['start_at', 'end_at', 'location_id', 'booking_type_id']);
         $beforeSnapshot = $this->captureChangeSnapshot($booking);
+        $wasApproved = $booking->approval_status === 'approved';
+        $previousPrimaryQuantity = (int) $booking->items()
+            ->where('resource_pool_id', $booking->resource_pool_id)
+            ->value('quantity_requested');
 
-        $updated = DB::transaction(function () use ($booking, $data, $items, $primaryPool, $start, $end, $actor, $override, $isPrivileged, $before) {
+        $updated = DB::transaction(function () use ($booking, $data, $items, $primaryPool, $start, $end, $actor, $override, $isPrivileged, $before, $wasApproved, $previousPrimaryQuantity) {
             $oldItemIds = $booking->items()->pluck('id');
             BookingResourceAllocation::whereIn('booking_item_id', $oldItemIds)->whereNull('released_at')->update(['released_at' => now()]);
             $booking->items()->delete();
@@ -252,6 +260,14 @@ class BookingService
                 $reasons = $override ? [] : $this->approvalEvaluator->reasonsRequiringApproval(
                     $primaryPool, $start, $end, $booking->bookingType, $totalPrimaryQuantity,
                 );
+
+                if (! $override && $wasApproved && $totalPrimaryQuantity > $previousPrimaryQuantity) {
+                    $reasons[] = sprintf(
+                        'Quantity increased from %d to %d after approval.',
+                        $previousPrimaryQuantity,
+                        $totalPrimaryQuantity,
+                    );
+                }
 
                 if ($reasons === []) {
                     $booking->approval_status = 'approved';

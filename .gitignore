@@ -17,3 +17,8 @@ app/database/*.sqlite
 app/resource_booking
 app/.phpunit.cache/
 app/.phpunit.result.cache
+
+# Local env backups (never commit — contain secrets)
+.env.save
+.env.*.save
+*.save

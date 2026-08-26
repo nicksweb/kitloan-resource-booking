@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\SnipeItIntegrationController;
 use App\Http\Controllers\Auth\LocalLoginController;
 use App\Http\Controllers\Auth\OidcController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\BookingApprovalController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeController;
@@ -43,10 +44,18 @@ Route::post('/auth/logout', [OidcController::class, 'logout'])->name('auth.logou
 Route::middleware('throttle:10,1')->group(function () {
     Route::get('/auth/local', [LocalLoginController::class, 'show'])->name('auth.local.show');
     Route::post('/auth/local', [LocalLoginController::class, 'login'])->name('auth.local');
+
+    // Second-factor challenge: reached with a correct password but not yet
+    // logged in — the pending user is held in the session, not the auth guard.
+    Route::get('/auth/two-factor/challenge', [TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/auth/two-factor/challenge', [TwoFactorController::class, 'verifyChallenge'])->name('two-factor.challenge.verify');
 });
 
 Route::middleware('auth')->group(function () {
     Route::get('/', HomeController::class)->name('home');
+
+    Route::get('/auth/two-factor/setup', [TwoFactorController::class, 'setup'])->name('two-factor.setup');
+    Route::post('/auth/two-factor/setup', [TwoFactorController::class, 'confirmSetup'])->name('two-factor.setup.confirm');
 
     Route::post('/impersonation/stop', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
 

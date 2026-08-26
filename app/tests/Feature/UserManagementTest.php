@@ -66,4 +66,42 @@ class UserManagementTest extends TestCase
         $this->assertTrue($otherAdmin->fresh()->hasRole('it_operator'));
         $this->assertFalse($otherAdmin->fresh()->hasRole('administrator'));
     }
+
+    public function test_an_administrator_can_soft_delete_another_user(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+        $victim = User::factory()->create();
+        $victim->assignRole('user');
+
+        $this->actingAs($admin);
+        Livewire::test(UsersIndex::class)->call('delete', $victim->id);
+
+        $this->assertSoftDeleted('users', ['id' => $victim->id]);
+        $this->assertDatabaseHas('audit_events', ['event_type' => 'users.deleted']);
+    }
+
+    public function test_an_administrator_cannot_delete_their_own_account(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+
+        $this->actingAs($admin);
+        Livewire::test(UsersIndex::class)->call('delete', $admin->id);
+
+        $this->assertNotSoftDeleted('users', ['id' => $admin->id]);
+    }
+
+    public function test_a_deleted_user_can_no_longer_authenticate(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+        $victim = User::factory()->create();
+
+        $this->actingAs($admin);
+        Livewire::test(UsersIndex::class)->call('delete', $victim->id);
+
+        $this->assertNull(User::where('email', $victim->email)->first());
+        $this->assertNotNull(User::withTrashed()->where('email', $victim->email)->first());
+    }
 }

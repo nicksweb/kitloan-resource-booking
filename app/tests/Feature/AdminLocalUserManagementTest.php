@@ -152,14 +152,17 @@ class AdminLocalUserManagementTest extends TestCase
         $admin = User::factory()->create(['password' => Hash::make('a-strong-password-123')]);
         $admin->assignRole('administrator');
 
-        for ($i = 0; $i < 15; $i++) {
+        for ($i = 0; $i < 10; $i++) {
             $this->call('POST', route('auth.local'), ['email' => $admin->email, 'password' => 'wrong'], [], [], ['REMOTE_ADDR' => "10.0.0.{$i}"]);
         }
 
+        // Even the correct password from a fresh IP is now refused — the
+        // account is hard-locked, not just the source IP throttled.
         $response = $this->call('POST', route('auth.local'), ['email' => $admin->email, 'password' => 'a-strong-password-123'], [], [], ['REMOTE_ADDR' => '10.0.0.99']);
 
         $response->assertSessionHasErrors('email');
         $this->assertGuest();
-        $this->assertDatabaseHas('audit_events', ['event_type' => 'auth.local_login_bruteforce_suspected']);
+        $this->assertDatabaseHas('audit_events', ['event_type' => 'auth.local_login_locked']);
+        $this->assertNotNull($admin->fresh()->locked_until);
     }
 }

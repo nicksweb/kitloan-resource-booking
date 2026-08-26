@@ -3,6 +3,7 @@
 use App\Http\Middleware\EmbedSessionConfig;
 use App\Http\Middleware\FrameEmbedding;
 use App\Http\Middleware\EnsureUserEnabled;
+use App\Http\Middleware\RequireTwoFactorEnrolment;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToGroup('web', EmbedSessionConfig::class);
 
         $middleware->appendToGroup('web', EnsureUserEnabled::class);
+        // Local admins with a password must have TOTP 2FA — bounce them to
+        // enrolment until they do.
+        $middleware->appendToGroup('web', RequireTwoFactorEnrolment::class);
         // After everything: emit the frame-ancestors / X-Frame-Options headers
         // and remember an ?embed=1 visit for the rest of the session.
         $middleware->appendToGroup('web', FrameEmbedding::class);

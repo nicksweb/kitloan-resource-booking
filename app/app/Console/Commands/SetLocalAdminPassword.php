@@ -69,6 +69,7 @@ class SetLocalAdminPassword extends Command
         );
 
         $this->info("Local login password set for {$email}.");
+        $this->line('This account will be prompted to set up two-factor authentication on its next sign-in.');
 
         return self::SUCCESS;
     }

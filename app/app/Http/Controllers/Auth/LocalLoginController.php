@@ -8,6 +8,7 @@ use App\Services\Audit\AuditLogger;
 use App\Settings\SettingsRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 
 class LocalLoginController extends Controller
 {
@@ -22,8 +23,27 @@ class LocalLoginController extends Controller
     {
         abort_unless($this->isEnabled($settings), 404);
 
-        $request->authenticate($auditLogger);
+        $user = $request->authenticate($auditLogger);
+
+        // Password is correct. If the account has TOTP 2FA set up, don't
+        // complete the login yet — hand off to the challenge screen. If it's
+        // required but not yet set up, log in and let RequireTwoFactorEnrolment
+        // force enrolment on the next request.
+        if ($user->hasTwoFactorEnabled()) {
+            $request->session()->put('login.2fa.user_id', $user->id);
+            $request->session()->put('login.2fa.remember', false);
+
+            return redirect()->route('two-factor.challenge');
+        }
+
+        Auth::login($user);
         $request->session()->regenerate();
+
+        $auditLogger->log(
+            'auth.local_login_succeeded',
+            "{$user->name} signed in via local emergency login from {$request->ip()}",
+            $user,
+        );
 
         return redirect()->route('home');
     }

@@ -123,6 +123,62 @@ class UsersIndex extends Component
         $user->update(['enabled' => ! $user->enabled]);
     }
 
+    /**
+     * Soft-delete a user. Their bookings and audit trail stay intact (those
+     * FKs are restrictOnDelete, and a soft delete doesn't touch them); the
+     * account simply can't sign in and drops off the list. Refused for your
+     * own account and for the last remaining enabled administrator.
+     */
+    public function delete(User $user, AuditLogger $auditLogger): void
+    {
+        if ($user->id === auth()->id()) {
+            session()->flash('error', "You can't delete your own account.");
+
+            return;
+        }
+
+        if ($user->hasRole('administrator')
+            && User::role('administrator')->where('enabled', true)->whereKeyNot($user->id)->doesntExist()) {
+            session()->flash('error', "That's the last enabled administrator — assign the role to someone else first.");
+
+            return;
+        }
+
+        $user->delete();
+
+        $auditLogger->log(
+            'users.deleted',
+            auth()->user()->name." deleted user {$user->email}",
+            auth()->user(),
+        );
+
+        session()->flash('success', "User {$user->email} deleted.");
+    }
+
+    /**
+     * Clear a user's 2FA enrolment — for an administrator who has lost their
+     * authenticator device. They'll be forced to set it up again on next
+     * sign-in (see RequireTwoFactorEnrolment).
+     */
+    public function clearTwoFactor(User $user, AuditLogger $auditLogger): void
+    {
+        $user->forceFill([
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+            'two_factor_failed_attempts' => 0,
+            'locked_until' => null,
+        ])->save();
+
+        $auditLogger->log(
+            'auth.two_factor_reset',
+            auth()->user()->name." reset two-factor authentication for {$user->email}",
+            auth()->user(),
+        );
+
+        session()->flash('success', "Two-factor authentication reset for {$user->email}.");
+    }
+
     public function openLocalPasswordForm(User $user): void
     {
         if (! $user->hasRole('administrator')) {

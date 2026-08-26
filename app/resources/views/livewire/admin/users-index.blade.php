@@ -10,7 +10,7 @@
     <div class="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
             <thead><tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th class="px-4 py-3">Name</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Role</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Local login</th><th class="px-4 py-3">Last login</th><th class="px-4 py-3"></th>
+                <th class="px-4 py-3">Name</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Role</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Local login</th><th class="px-4 py-3">2FA</th><th class="px-4 py-3">Last login</th><th class="px-4 py-3"></th>
             </tr></thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach ($users as $user)
@@ -32,10 +32,27 @@
                                 <span class="text-xs text-gray-400">N/A</span>
                             @endif
                         </td>
+                        <td class="px-4 py-3">
+                            @if ($user->hasTwoFactorEnabled())
+                                <span class="inline-flex items-center gap-2">
+                                    <x-status-badge status="available">On</x-status-badge>
+                                    <button wire:click="clearTwoFactor({{ $user->id }})" wire:confirm="Reset 2FA for {{ $user->email }}? They must set it up again at next sign-in." class="text-xs text-gray-400 hover:underline">Reset</button>
+                                </span>
+                            @elseif ($user->requiresTwoFactor())
+                                <x-status-badge status="disabled">Required — not set</x-status-badge>
+                            @elseif ($user->isSsoOnly())
+                                <span class="text-xs text-gray-400">SSO</span>
+                            @else
+                                <span class="text-xs text-gray-400">Off</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-gray-500">{{ $user->last_login_at?->diffForHumans() ?? 'Never' }}</td>
                         <td class="px-4 py-3 text-right space-x-2">
                             <button wire:click="edit({{ $user->id }})" class="text-indigo-600 hover:underline">Edit</button>
                             <button wire:click="toggleEnabled({{ $user->id }})" class="text-gray-500 hover:underline">{{ $user->enabled ? 'Disable' : 'Enable' }}</button>
+                            @if ($user->id !== auth()->id())
+                                <button wire:click="delete({{ $user->id }})" wire:confirm="Delete {{ $user->email }}? Their bookings and audit history are kept; the account can no longer sign in." class="text-red-600 hover:underline">Delete</button>
+                            @endif
                             @if (! $user->hasRole('administrator') && $user->id !== auth()->id() && $user->enabled)
                                 <form method="POST" action="{{ route('admin.users.impersonate', $user) }}" class="inline" onsubmit="return confirm('Sign in as {{ $user->name }}? You can return to your own account at any time.');">
                                     @csrf

@@ -4,6 +4,43 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.3.0] - 2026-08-26
+
+No breaking changes. One additive table (`message_templates`); its migration has a working `down()`. Upgrade
+with the normal `kitloan:upgrade` flow — it also runs the new `MessageTemplateSeeder` to backfill default
+email copy.
+
+### Added
+
+- **Editable email templates** (Administration → Emails). Per notification — booking submitted / confirmed /
+  declined / reminder / amended, and the IT approval + amendment + daily-summary emails — the subject line and
+  opening paragraph are now editable, with `{{ reference }}`, `{{ date }}`, `{{ room }}`, `{{ requestor_name }}`
+  and similar placeholders substituted per booking (never evaluated as code). A shared **policy notice** block
+  is appended to every requestor email — the place for "all equipment must be returned to IT unless collection
+  is arranged in advance". Each template has "Reset to default". Included in the configuration export/import.
+- **Reporting** (Administration → Reports; visible to administrators and IT operators). Date range + pool
+  filter, with: booking volume by month, utilisation per pool (resource-days booked vs. capacity-days),
+  busiest days, top requestors, top rooms, and approval stats (auto vs. manual vs. rejected, rejection rate,
+  average hours to approval). CSV export of the underlying bookings.
+- **Book on behalf of another user.** IT operators and administrators get a "Requestor" picker on the booking
+  wizard and the amend screen; the booking is recorded as that person's while `created_by` stays the real
+  actor (audit: "… created BK-123 on behalf of {name}" / "… reassigned to {name}"). A normal user cannot set
+  it — the server ignores the field for anyone without approval authority.
+- **Audit log: clear + retention.** A "Clear log…" action purges entries older than 30/90/180/365 days or all
+  (recorded as an `audit.cleared` entry), an event-type filter, and actor/IP shown per row. New
+  `audit:prune` command + nightly schedule deletes entries older than the **Audit-log retention (months)**
+  setting (Administration → Settings → Housekeeping; 0 = keep forever, the default).
+- **Site logo actually appears.** An uploaded logo now renders in the top navigation and on the login page
+  (previously it was stored but never shown), with the built-in mark as the fallback. Settings gains a
+  "Remove logo" button and recommended-size guidance.
+- **Delete individual resources** on a resource pool (soft; refused while allocated to an upcoming booking).
+
+### Changed
+
+- The "Import from Snipe-IT" button on a resource pool is now always shown — disabled, with a "Set up…" link,
+  when the Snipe-IT integration env (`SNIPEIT_ENABLED` / `SNIPEIT_URL` / `SNIPEIT_API_TOKEN`) is not
+  configured — instead of vanishing. The integration page spells out those variables when it's off.
+
 ## [1.2.0] - 2026-08-26
 
 No breaking changes. All migrations in this release are additive; `down()` works for each. Upgrade with the

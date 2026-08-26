@@ -19,6 +19,9 @@ pre-deploy workflow this project follows.
 - [Demo / sample data](#demo--sample-data)
 - [Emergency local admin login](#emergency-local-admin-login)
 - [Admin impersonation](#admin-impersonation)
+- [Email templates](#email-templates)
+- [Reporting](#reporting)
+- [Audit log housekeeping](#audit-log-housekeeping)
 - [OIDC configuration](#oidc-configuration)
 - [Database configuration](#database-configuration)
 - [SMTP / notifications configuration](#smtp--notifications-configuration)
@@ -225,6 +228,44 @@ While impersonating:
 
 Both the start and stop of every impersonation session are audited (`auth.impersonation_started` /
 `auth.impersonation_stopped`), independent of whatever the impersonated session goes on to do.
+
+For a one-off "book this for a teacher who phoned in", you don't need impersonation: the booking wizard and the
+amend screen show a **Requestor** picker to IT operators and administrators. Pick the person and the booking is
+recorded as theirs, while you stay recorded as who created it (audit: "… created BK-123 on behalf of {name}").
+
+## Email templates
+
+**Administration → Emails** edits the wording of every notification: a subject line and an opening paragraph
+per message (booking submitted / confirmed / declined / reminder / amended, plus the IT approval, amendment
+and daily-summary emails), and a shared **policy notice** that is appended to every requestor email — the
+place for "all equipment must be returned to IT unless collection has been arranged in advance".
+
+Placeholders like `{{ reference }}`, `{{ date }}`, `{{ room }}`, `{{ pool }}`, `{{ quantity }}` and
+`{{ requestor_name }}` are filled in per booking; unknown placeholders are left as-is. The text is never
+executed as code. The booking-details table and the calendar (`.ics`) attachment are always included. Leave a
+field blank to fall back to the built-in wording; "Reset to default" restores the shipped text. Templates are
+part of the configuration export/import.
+
+## Reporting
+
+**Administration → Reports** (administrators and IT operators) — pick a date range (and optionally one
+resource pool) and see:
+
+- **Volume by month** — bookings and units requested.
+- **Utilisation by pool** — resource-days booked (units × days) against capacity-days (pool size × weekdays in
+  range), as a percentage.
+- **Busiest days**, **top requestors**, **top rooms**.
+- **Approvals** — auto vs. manual vs. rejected vs. still-pending, rejection rate, average hours to approval.
+
+**Export CSV** downloads the underlying per-booking rows for the current filter, for pivoting elsewhere.
+
+## Audit log housekeeping
+
+The audit log (**Administration → Audit Log**) is searchable, filterable by event type, and paginated.
+**Clear log…** purges entries older than 30/90/180/365 days or everything — the purge is itself recorded as an
+`audit.cleared` entry. For automatic trimming, set **Audit-log retention (months)** under
+**Administration → Settings → Housekeeping** (`0` = keep forever); a nightly `audit:prune` job then deletes
+anything older and logs an `audit.pruned` entry.
 
 ## OIDC configuration
 

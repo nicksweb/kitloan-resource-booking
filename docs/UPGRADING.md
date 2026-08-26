@@ -1,12 +1,28 @@
 # Upgrading a Kitloan instance
 
 This is the exact, copy-pasteable procedure for upgrading a running deployment to a newer tagged release.
-It is written for the **1.1.0 → 1.2.0** upgrade but the shape is the same for every future release — read
-the [changelog](../CHANGELOG.md) entries between your version and the target for anything that needs extra
-care (a "Breaking" heading, or per-release notes here).
+The worked example below is **1.1.0 → 1.2.0**, but the shape is the same for every release — substitute the
+target tag, and read the [changelog](../CHANGELOG.md) entries between your version and the target for anything
+that needs extra care (a "Breaking" heading, or the per-release notes just below).
 
 Everything below runs on the host where the instance's `docker compose` stack lives, from the repository
 checkout that stack was built from.
+
+## Per-release notes
+
+### → 1.3.0
+
+No breaking changes; standard procedure. New this release: one additive table (`message_templates`), a new
+`BOOKING_AUDIT_RETENTION_MONTHS` env var (optional, defaults to `0` = keep audit entries forever), and a new
+nightly `audit:prune` job. `kitloan:upgrade` runs `MessageTemplateSeeder` for you, so the default email copy
+is populated on upgrade. After upgrading, glance at **Administration → Emails** (edit the shared "policy
+notice" if you want the "return to IT" wording) and **Administration → Reports**.
+
+### → 1.2.0
+
+See the full walk-through below. Adds `two_factor_*` / `locked_until` / `deleted_at` columns to `users` (all
+additive) and the `kitloan:upgrade` command that the `migrate` service now runs. **Local-password admins are
+forced through TOTP 2FA enrolment on their next sign-in** — brief them, and keep a second admin reachable.
 
 ---
 

@@ -4,6 +4,19 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.3.1] - 2026-08-27
+
+### Added
+
+- **Administration → Settings** now opens with an "About this instance" panel: the running Kitloan version,
+  the version of the last completed `kitloan:upgrade` (with a nudge if the two differ), and a link to the
+  changelog. The version also remains in the Administration tab bar.
+
+### Fixed
+
+- The README upgrade example checked out `v1.1.0`; bumped to `v1.3.0` so a copy-paste lands on the current
+  release.
+
 ## [1.3.0] - 2026-08-26
 
 No breaking changes. One additive table (`message_templates`); its migration has a working `down()`. Upgrade

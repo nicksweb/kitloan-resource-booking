@@ -22,3 +22,9 @@ app/.phpunit.result.cache
 .env.save
 .env.*.save
 *.save
+
+# SSH keys / deploy keys — never commit
+nos-resourcebooking
+nos-resourcebooking.pub
+id_*
+*.pem

@@ -48,4 +48,20 @@ class SiteLogoTest extends TestCase
         $settings->forgetCache();
         $this->assertSame('', $settings->get('site_logo_path'));
     }
+
+    public function test_settings_page_shows_the_running_version(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+
+        Livewire::actingAs($admin)->test(SettingsIndex::class)
+            ->assertSee('About this instance')
+            ->assertSee('v'.config('version.app'))
+            ->assertSee('not recorded yet');
+
+        app(SettingsRepository::class)->set(config('version.stored_version_key'), config('version.app'));
+
+        Livewire::actingAs($admin)->test(SettingsIndex::class)
+            ->assertDontSee('not recorded yet');
+    }
 }

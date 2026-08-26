@@ -52,6 +52,10 @@ class SettingsIndex extends Component
 
     public int $auditRetentionMonths;
 
+    public string $codeVersion = '';
+
+    public ?string $installedVersion = null;
+
     public bool $showConfigImport = false;
 
     public $configImportFile = null;
@@ -81,6 +85,8 @@ class SettingsIndex extends Component
         $this->embeddingEnabled = (bool) $settings->get('embedding_enabled', false);
         $this->embeddingAllowedOrigins = (string) $settings->get('embedding_allowed_origins', '');
         $this->auditRetentionMonths = (int) $settings->get('audit_retention_months', 0);
+        $this->codeVersion = (string) config('version.app');
+        $this->installedVersion = $settings->get(config('version.stored_version_key'));
     }
 
     public function render()

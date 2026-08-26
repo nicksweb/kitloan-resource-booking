@@ -4,6 +4,33 @@
 
     <div class="mt-6 space-y-6">
         <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 class="text-sm font-semibold text-gray-900">About this instance</h2>
+            <dl class="mt-3 space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Kitloan version</dt>
+                    <dd class="font-medium text-gray-900">v{{ $codeVersion }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Last completed upgrade</dt>
+                    <dd class="font-medium text-gray-900">
+                        @if ($installedVersion)
+                            v{{ $installedVersion }}
+                            @if ($installedVersion !== $codeVersion)
+                                <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">run <code>kitloan:upgrade</code></span>
+                            @endif
+                        @else
+                            <span class="text-gray-400">not recorded yet</span>
+                        @endif
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Release notes</dt>
+                    <dd><a href="https://github.com/nicksweb/kitloan-resource-booking/blob/main/CHANGELOG.md" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">CHANGELOG</a></dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
             <h2 class="text-sm font-semibold text-gray-900">General</h2>
             <div class="mt-3 space-y-3">
                 <div><label class="block text-xs font-medium text-gray-700">Site Name</label><input type="text" wire:model="siteName" class="mt-1 block w-full rounded-md border-gray-300 text-sm"></div>

@@ -2,7 +2,9 @@
     <x-admin.nav />
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-semibold tracking-tight text-gray-900">Locations</h1>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
+            <button wire:click="export" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Export JSON</button>
+            <button wire:click="openCampusRename" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Rename campus</button>
             <button wire:click="openImport" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Import CSV</button>
             <button wire:click="create" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Add Location</button>
         </div>
@@ -23,6 +25,7 @@
                         <td class="px-4 py-3 text-right space-x-2">
                             <button wire:click="edit({{ $location->id }})" class="text-indigo-600 hover:underline">Edit</button>
                             <button wire:click="toggleEnabled({{ $location->id }})" class="text-gray-500 hover:underline">{{ $location->enabled ? 'Disable' : 'Enable' }}</button>
+                            <button wire:click="delete({{ $location->id }})" wire:confirm="Delete location {{ $location->code }}? Existing bookings keep their history; it just stops appearing in the room picker." class="text-red-600 hover:underline">Delete</button>
                         </td>
                     </tr>
                 @endforeach
@@ -45,6 +48,36 @@
                 <div class="mt-6 flex justify-end gap-2">
                     <button wire:click="$set('showForm', false)" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">Cancel</button>
                     <button wire:click="save" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Save</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($showCampusRename)
+        <div class="fixed inset-0 z-10 flex items-center justify-center bg-gray-900/50 p-4">
+            <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                <h2 class="text-lg font-semibold text-gray-900">Rename a campus</h2>
+                <p class="mt-1 text-xs text-gray-500">Updates the campus label on every location that currently carries it.</p>
+                <div class="mt-4 space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700">Current campus</label>
+                        <input type="text" list="campus-list" wire:model="campusRenameFrom" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                        <datalist id="campus-list">
+                            @foreach ($campuses as $campus)
+                                <option value="{{ $campus }}"></option>
+                            @endforeach
+                        </datalist>
+                        @error('campusRenameFrom') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700">New campus name</label>
+                        <input type="text" wire:model="campusRenameTo" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                        @error('campusRenameTo') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button wire:click="$set('showCampusRename', false)" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">Cancel</button>
+                    <button wire:click="renameCampus" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Rename</button>
                 </div>
             </div>
         </div>

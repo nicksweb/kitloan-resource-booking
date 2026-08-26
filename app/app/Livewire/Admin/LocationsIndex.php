@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Location;
+use App\Services\Audit\AuditLogger;
+use App\Services\Config\ConfigTransferService;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -14,6 +16,12 @@ class LocationsIndex extends Component
     use WithFileUploads;
 
     public bool $showForm = false;
+
+    public bool $showCampusRename = false;
+
+    public string $campusRenameFrom = '';
+
+    public string $campusRenameTo = '';
 
     public ?int $editingId = null;
 
@@ -38,7 +46,11 @@ class LocationsIndex extends Component
 
     public function render()
     {
-        return view('livewire.admin.locations-index', ['locations' => Location::ordered()->get()]);
+        return view('livewire.admin.locations-index', [
+            'locations' => Location::ordered()->get(),
+            'campuses' => Location::query()->whereNotNull('campus')->where('campus', '!=', '')
+                ->distinct()->orderBy('campus')->pluck('campus'),
+        ]);
     }
 
     public function create(): void
@@ -85,6 +97,73 @@ class LocationsIndex extends Component
     public function toggleEnabled(Location $location): void
     {
         $location->update(['enabled' => ! $location->enabled]);
+    }
+
+    /**
+     * Soft-delete a location. Bookings that referenced it keep their history
+     * (the FK is nullOnDelete at the database level, but a soft delete doesn't
+     * even reach that) — the row simply stops appearing in the picker. Restore
+     * it from the database if it was removed by mistake.
+     */
+    public function delete(Location $location, AuditLogger $auditLogger): void
+    {
+        $location->delete();
+
+        $auditLogger->log(
+            'catalog.location_deleted',
+            auth()->user()->name." deleted location {$location->code} ({$location->name})",
+            auth()->user(),
+        );
+
+        session()->flash('success', "Location {$location->code} deleted.");
+    }
+
+    public function openCampusRename(): void
+    {
+        $this->reset(['campusRenameFrom', 'campusRenameTo']);
+        $this->showCampusRename = true;
+    }
+
+    /**
+     * Bulk-rename a campus across every location that carries it — e.g.
+     * consolidating "Senior School" and "Senior Campus" into one label, or
+     * correcting a typo everywhere at once.
+     */
+    public function renameCampus(AuditLogger $auditLogger): void
+    {
+        $data = $this->validate([
+            'campusRenameFrom' => ['required', 'string', 'max:255'],
+            'campusRenameTo' => ['required', 'string', 'max:255'],
+        ]);
+
+        $affected = Location::where('campus', $data['campusRenameFrom'])
+            ->update(['campus' => $data['campusRenameTo']]);
+
+        if ($affected === 0) {
+            $this->addError('campusRenameFrom', 'No locations have that campus.');
+
+            return;
+        }
+
+        $auditLogger->log(
+            'catalog.campus_renamed',
+            auth()->user()->name." renamed campus \"{$data['campusRenameFrom']}\" to \"{$data['campusRenameTo']}\" ({$affected} location(s))",
+            auth()->user(),
+        );
+
+        $this->showCampusRename = false;
+        session()->flash('success', "Renamed campus on {$affected} location(s).");
+    }
+
+    public function export(ConfigTransferService $transfer)
+    {
+        $bundle = $transfer->export(['locations']);
+
+        return response()->streamDownload(
+            fn () => print(json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            'kitloan-locations-'.now()->format('Y-m-d').'.json',
+            ['Content-Type' => 'application/json'],
+        );
     }
 
     public function openImport(): void

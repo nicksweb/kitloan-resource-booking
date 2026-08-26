@@ -2,14 +2,20 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Booking;
 use App\Models\ResourcePool;
+use App\Services\Audit\AuditLogger;
+use App\Services\Config\ConfigTransferService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Layout('components.layouts.app')]
 class ResourcePoolsIndex extends Component
 {
+    use WithFileUploads;
+
     public bool $showForm = false;
 
     public ?int $editingId = null;
@@ -51,6 +57,13 @@ class ResourcePoolsIndex extends Component
     public string $bookingReferencePrefix = 'BK';
 
     public bool $enabled = true;
+
+    public bool $showImport = false;
+
+    public $importFile = null;
+
+    /** @var array{created: int, updated: int, skipped: list<string>}|null */
+    public ?array $importResults = null;
 
     public function render()
     {
@@ -149,5 +162,85 @@ class ResourcePoolsIndex extends Component
     public function toggleEnabled(ResourcePool $pool): void
     {
         $pool->update(['enabled' => ! $pool->enabled]);
+    }
+
+    /**
+     * Soft-delete a pool. Refused while it still has active bookings in the
+     * future (as the primary pool or an additional item) — disable it instead,
+     * which hides it from new bookings without disturbing existing ones. The
+     * pool's resources are left in place; they reappear if the pool is
+     * restored from the database.
+     */
+    public function delete(ResourcePool $pool, AuditLogger $auditLogger): void
+    {
+        $hasActiveBookings = Booking::query()
+            ->where('lifecycle_status', 'active')
+            ->where('end_at', '>=', now())
+            ->where(fn ($q) => $q->where('resource_pool_id', $pool->id)
+                ->orWhereHas('items', fn ($i) => $i->where('resource_pool_id', $pool->id)))
+            ->exists();
+
+        if ($hasActiveBookings) {
+            session()->flash('error', "\"{$pool->name}\" still has upcoming bookings — disable it instead of deleting.");
+
+            return;
+        }
+
+        $pool->delete();
+
+        $auditLogger->log(
+            'catalog.resource_pool_deleted',
+            auth()->user()->name." deleted resource pool \"{$pool->name}\"",
+            auth()->user(),
+        );
+
+        session()->flash('success', "Resource pool \"{$pool->name}\" deleted.");
+    }
+
+    public function export(ConfigTransferService $transfer)
+    {
+        $bundle = $transfer->export(['resource_pools']);
+        $filename = 'kitloan-resource-pools-'.now()->format('Y-m-d').'.json';
+
+        return response()->streamDownload(
+            fn () => print(json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            $filename,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    public function openImport(): void
+    {
+        $this->reset(['importFile', 'importResults']);
+        $this->showImport = true;
+    }
+
+    /**
+     * Imports the "resource_pools" section of a Kitloan config export (see
+     * ConfigTransferService). Pools are matched by slug or name and upserted
+     * along with their nested resources; nothing is deleted.
+     */
+    public function import(ConfigTransferService $transfer): void
+    {
+        $this->validate(['importFile' => ['required', 'file', 'mimes:json,txt', 'max:5120']]);
+
+        $decoded = json_decode(file_get_contents($this->importFile->getRealPath()), true);
+        if (! is_array($decoded)) {
+            $this->addError('importFile', 'That file is not valid JSON.');
+
+            return;
+        }
+
+        $result = $transfer->import($decoded, ['resource_pools']);
+        if (! $result['ok']) {
+            $this->addError('importFile', $result['error']);
+
+            return;
+        }
+
+        $this->importResults = $result['sections']['resource_pools'] ?? ['created' => 0, 'updated' => 0, 'skipped' => []];
+        $this->importFile = null;
+
+        session()->flash('success', "Imported {$this->importResults['created']} new and updated {$this->importResults['updated']} existing resource pool(s).");
     }
 }

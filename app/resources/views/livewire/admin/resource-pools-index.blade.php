@@ -2,7 +2,11 @@
     <x-admin.nav />
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-semibold tracking-tight text-gray-900">Resource Pools</h1>
-        <button wire:click="create" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Add Resource Pool</button>
+        <div class="flex gap-2">
+            <button wire:click="export" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Export JSON</button>
+            <button wire:click="openImport" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Import JSON</button>
+            <button wire:click="create" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Add Resource Pool</button>
+        </div>
     </div>
 
     <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -26,6 +30,7 @@
                         <td class="px-4 py-3 text-right space-x-2">
                             <button wire:click="edit({{ $pool->id }})" class="text-indigo-600 hover:underline">Edit</button>
                             <button wire:click="toggleEnabled({{ $pool->id }})" class="text-gray-500 hover:underline">{{ $pool->enabled ? 'Disable' : 'Enable' }}</button>
+                            <button wire:click="delete({{ $pool->id }})" wire:confirm="Delete &quot;{{ $pool->name }}&quot;? Existing bookings are unaffected; it just stops appearing for new ones. This is refused while it still has upcoming bookings." class="text-red-600 hover:underline">Delete</button>
                         </td>
                     </tr>
                 @endforeach
@@ -107,6 +112,49 @@
                 <div class="mt-6 flex justify-end gap-2">
                     <button wire:click="$set('showForm', false)" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">Cancel</button>
                     <button wire:click="save" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Save</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($showImport)
+        <div class="fixed inset-0 z-10 flex items-center justify-center bg-gray-900/50 p-4">
+            <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+                <h2 class="text-lg font-semibold text-gray-900">Import Resource Pools from JSON</h2>
+                <p class="mt-1 text-xs text-gray-500">
+                    Upload a file produced by <strong>Export JSON</strong> (here or from
+                    Administration&nbsp;→&nbsp;Settings&nbsp;→&nbsp;Full configuration). Pools are matched by
+                    slug or name and upserted along with their nested resources. Nothing is ever deleted by an import.
+                </p>
+                <p class="mt-2 text-xs text-gray-400">
+                    A worked example ships at <code class="rounded bg-gray-100 px-1">app/resources/examples/resource-pools.json</code> in the repository.
+                </p>
+
+                <div class="mt-4">
+                    <input type="file" wire:model="importFile" accept=".json,application/json" class="block w-full text-sm">
+                    <div wire:loading wire:target="importFile" class="mt-1 text-xs text-gray-500">Uploading&hellip;</div>
+                    @error('importFile') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                @if ($importResults)
+                    <div class="mt-4 rounded-md bg-gray-50 p-3 text-xs">
+                        <p class="font-medium text-gray-700">{{ $importResults['created'] }} created, {{ $importResults['updated'] }} updated, {{ count($importResults['skipped']) }} skipped.</p>
+                        @if (!empty($importResults['skipped']))
+                            <ul class="mt-2 space-y-0.5 text-red-600">
+                                @foreach ($importResults['skipped'] as $reason)
+                                    <li>{{ $reason }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                @endif
+
+                <div class="mt-6 flex justify-end gap-2">
+                    <button wire:click="$set('showImport', false)" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">Close</button>
+                    <button wire:click="import" wire:loading.attr="disabled" wire:target="import" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                        <span wire:loading.remove wire:target="import">Import</span>
+                        <span wire:loading wire:target="import">Importing&hellip;</span>
+                    </button>
                 </div>
             </div>
         </div>

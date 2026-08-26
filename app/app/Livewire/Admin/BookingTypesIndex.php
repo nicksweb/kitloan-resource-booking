@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\BookingType;
+use App\Services\Audit\AuditLogger;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -81,5 +82,23 @@ class BookingTypesIndex extends Component
     public function toggleEnabled(BookingType $type): void
     {
         $type->update(['enabled' => ! $type->enabled]);
+    }
+
+    /**
+     * Soft-delete an exam/booking type. Bookings that used it keep their
+     * history (the FK is nullOnDelete, and a soft delete doesn't reach it);
+     * it just stops being offered on new bookings.
+     */
+    public function delete(BookingType $type, AuditLogger $auditLogger): void
+    {
+        $type->delete();
+
+        $auditLogger->log(
+            'catalog.booking_type_deleted',
+            auth()->user()->name." deleted booking type \"{$type->name}\"",
+            auth()->user(),
+        );
+
+        session()->flash('success', "Booking type \"{$type->name}\" deleted.");
     }
 }

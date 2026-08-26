@@ -1,0 +1,60 @@
+{
+    "kitloan": {
+        "format_version": 1,
+        "app_version": "1.2.0",
+        "exported_at": "2026-08-26T09:00:00+10:00",
+        "sections": ["resource_pools"]
+    },
+    "resource_pools": [
+        {
+            "name": "Exam Laptops",
+            "slug": "exam-laptops",
+            "description": "Managed Windows laptops for NAPLAN and internal exams.",
+            "enabled": true,
+            "icon": "laptop",
+            "display_order": 1,
+            "allocation_mode": "individual",
+            "quantity_total": null,
+            "minimum_lead_time_minutes": 120,
+            "preparation_buffer_minutes": 15,
+            "return_buffer_minutes": 15,
+            "allow_weekends": false,
+            "allow_out_of_hours": false,
+            "requires_room": true,
+            "allows_student": true,
+            "requires_student": false,
+            "requires_booking_type": true,
+            "auto_approval_enabled": true,
+            "booking_reference_prefix": "EX",
+            "deleted": false,
+            "resources": [
+                { "name": "Laptop 01", "asset_number": "KL-0001", "serial": "SN-AA-0001", "status": "available", "source": "manual", "display_order": 1, "notes": null, "deleted": false },
+                { "name": "Laptop 02", "asset_number": "KL-0002", "serial": "SN-AA-0002", "status": "available", "source": "manual", "display_order": 2, "notes": null, "deleted": false },
+                { "name": "Laptop 03", "asset_number": "KL-0003", "serial": "SN-AA-0003", "status": "maintenance", "source": "manual", "display_order": 3, "notes": "Cracked bezel - awaiting parts", "deleted": false }
+            ]
+        },
+        {
+            "name": "USB-C Chargers",
+            "slug": "usb-c-chargers",
+            "description": "Loan chargers - counted as a pool, not tracked individually.",
+            "enabled": true,
+            "icon": "bolt",
+            "display_order": 2,
+            "allocation_mode": "quantity",
+            "quantity_total": 40,
+            "minimum_lead_time_minutes": 0,
+            "preparation_buffer_minutes": 0,
+            "return_buffer_minutes": 0,
+            "allow_weekends": true,
+            "allow_out_of_hours": true,
+            "requires_room": false,
+            "allows_student": true,
+            "requires_student": false,
+            "requires_booking_type": false,
+            "auto_approval_enabled": true,
+            "booking_reference_prefix": "CH",
+            "deleted": false,
+            "resources": []
+        }
+    ]
+}

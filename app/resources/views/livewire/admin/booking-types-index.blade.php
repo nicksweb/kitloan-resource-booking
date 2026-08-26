@@ -19,6 +19,7 @@
                         <td class="px-4 py-3 text-right space-x-2">
                             <button wire:click="edit({{ $type->id }})" class="text-indigo-600 hover:underline">Edit</button>
                             <button wire:click="toggleEnabled({{ $type->id }})" class="text-gray-500 hover:underline">{{ $type->enabled ? 'Disable' : 'Enable' }}</button>
+                            <button wire:click="delete({{ $type->id }})" wire:confirm="Delete &quot;{{ $type->name }}&quot;? Existing bookings keep their history; it just stops being offered on new ones." class="text-red-600 hover:underline">Delete</button>
                         </td>
                     </tr>
                 @endforeach

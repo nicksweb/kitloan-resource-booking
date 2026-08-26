@@ -12,6 +12,10 @@
     }
     if (Gate::allows('manage-settings')) {
         $links[] = ['route' => 'admin.settings.index', 'pattern' => 'admin.settings.*', 'label' => 'Settings'];
+        $links[] = ['route' => 'admin.message-templates.index', 'pattern' => 'admin.message-templates.*', 'label' => 'Emails'];
+    }
+    if (Gate::allows('view-reports')) {
+        $links[] = ['route' => 'admin.reports.index', 'pattern' => 'admin.reports.*', 'label' => 'Reports'];
     }
     if (Gate::allows('view-audit-log')) {
         $links[] = ['route' => 'admin.audit-log.index', 'pattern' => 'admin.audit-log.*', 'label' => 'Audit Log'];

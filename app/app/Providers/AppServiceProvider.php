@@ -31,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-settings', fn ($user) => $user->hasRole('administrator'));
         Gate::define('view-audit-log', fn ($user) => $user->hasRole('administrator'));
 
+        // Usage/utilisation reporting — operational, so IT operators see it too.
+        Gate::define('view-reports', fn ($user) => $user->hasAnyRole(['administrator', 'it_operator']));
+
         if (config('app.env') === 'production' || str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }

@@ -1,7 +1,7 @@
 <x-mail::message>
 # Booking Amended
 
-This booking is still approved — no action needed — but here's what changed.
+{!! $intro ?? 'This booking is still approved — no action needed — but here\'s what changed.' !!}
 
 **Reference:** {{ $booking->reference }}
 **Requester:** {{ $booking->bookedBy->name }}

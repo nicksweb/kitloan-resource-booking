@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Booking;
+use App\Services\Notifications\TemplateRenderer;
 use App\Settings\SettingsRepository;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -25,14 +26,18 @@ class BookingAmendedMail extends Mailable
     /**
      * @param  array<int, string>  $changes
      */
-    public function __construct(public Booking $booking, public array $changes)
-    {
-    }
+    public function __construct(public Booking $booking, public array $changes) {}
 
     public function envelope(): Envelope
     {
         $settings = app(SettingsRepository::class);
-        $envelope = new Envelope(subject: "Booking amended: {$this->booking->reference}");
+        $renderer = app(TemplateRenderer::class);
+
+        $envelope = new Envelope(subject: $renderer->subject(
+            'booking.it_amended',
+            $renderer->tokensFor($this->booking),
+            "Booking amended: {$this->booking->reference}",
+        ));
 
         $replyTo = $settings->get('helpdesk_reply_to_address');
         if ($replyTo) {
@@ -44,11 +49,14 @@ class BookingAmendedMail extends Mailable
 
     public function content(): Content
     {
+        $renderer = app(TemplateRenderer::class);
+
         return new Content(
             markdown: 'emails.bookings.amended',
             with: [
                 'booking' => $this->booking,
                 'changes' => $this->changes,
+                'intro' => $renderer->intro('booking.it_amended', $renderer->tokensFor($this->booking)),
                 'viewUrl' => route('bookings.show', $this->booking),
             ],
         );

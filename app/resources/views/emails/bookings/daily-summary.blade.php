@@ -1,6 +1,10 @@
 <x-mail::message>
 # Today's Bookings — {{ $date->format('l j F Y') }}
 
+@if (!empty($intro))
+{!! $intro !!}
+
+@endif
 {{ $bookings->count() }} booking(s) today.
 
 @foreach ($bookings as $booking)

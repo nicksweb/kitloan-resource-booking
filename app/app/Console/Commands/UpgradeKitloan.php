@@ -56,6 +56,7 @@ class UpgradeKitloan extends Command
 
         $steps['Backfilling roles'] = fn () => Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\RoleSeeder', '--force' => true], $this->output);
         $steps['Backfilling settings'] = fn () => Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\SettingsSeeder', '--force' => true], $this->output);
+        $steps['Backfilling message templates'] = fn () => Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\MessageTemplateSeeder', '--force' => true], $this->output);
         // view:clear matters most: compiled Blade lives on the shared
         // `app_storage` volume, so clearing it here reaches the app/queue/
         // scheduler containers too. The others clear this container's own

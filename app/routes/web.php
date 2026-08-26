@@ -12,6 +12,8 @@ use App\Http\Controllers\PublicBookingViewController;
 use App\Livewire\Admin\AuditLogIndex;
 use App\Livewire\Admin\BookingTypesIndex;
 use App\Livewire\Admin\LocationsIndex;
+use App\Livewire\Admin\MessageTemplatesIndex;
+use App\Livewire\Admin\ReportsIndex;
 use App\Livewire\Admin\ResourcePoolResources;
 use App\Livewire\Admin\ResourcePoolsIndex;
 use App\Livewire\Admin\SchedulePeriodsIndex;
@@ -97,9 +99,14 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('can:manage-settings')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/settings', SettingsIndex::class)->name('settings.index');
+        Route::get('/message-templates', MessageTemplatesIndex::class)->name('message-templates.index');
     });
 
     Route::middleware('can:view-audit-log')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/audit-log', AuditLogIndex::class)->name('audit-log.index');
+    });
+
+    Route::middleware('can:view-reports')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/reports', ReportsIndex::class)->name('reports.index');
     });
 });

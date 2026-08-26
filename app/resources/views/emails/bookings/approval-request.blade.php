@@ -1,6 +1,10 @@
 <x-mail::message>
 # {{ !empty($changes) ? 'Re-approval Needed After Amendment' : 'Approval Needed' }}
 
+@if (!empty($intro))
+{!! $intro !!}
+
+@endif
 **Reference:** {{ $booking->reference }}
 **Requester:** {{ $booking->bookedBy->name }}
 @if ($booking->students->isNotEmpty())

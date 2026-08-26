@@ -5,11 +5,13 @@ namespace App\Services\Config;
 use App\Models\ApprovalRule;
 use App\Models\BookingType;
 use App\Models\Location;
+use App\Models\MessageTemplate;
 use App\Models\Resource;
 use App\Models\ResourcePool;
 use App\Models\SchedulePeriod;
 use App\Models\Setting;
 use App\Settings\SettingsRepository;
+use Database\Seeders\MessageTemplateSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -34,7 +36,7 @@ class ConfigTransferService
 
     /** @var list<string> */
     public const SECTIONS = [
-        'settings', 'locations', 'resource_pools', 'booking_types', 'schedule_periods', 'approval_rules',
+        'settings', 'locations', 'resource_pools', 'booking_types', 'schedule_periods', 'approval_rules', 'message_templates',
     ];
 
     public function __construct(private readonly SettingsRepository $settings) {}
@@ -197,6 +199,19 @@ class ConfigTransferService
                 'threshold_value' => $r->threshold_value,
                 'enabled' => $r->enabled,
                 'display_order' => $r->display_order,
+            ])
+            ->all();
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function exportMessageTemplates(): array
+    {
+        return MessageTemplate::orderBy('key')->get()
+            ->map(fn ($t) => [
+                'key' => $t->key,
+                'subject' => $t->subject,
+                'intro' => $t->intro,
+                'enabled' => $t->enabled,
             ])
             ->all();
     }
@@ -438,6 +453,37 @@ class ConfigTransferService
                 'threshold_value' => (int) ($row['threshold_value'] ?? 1),
                 'enabled' => (bool) ($row['enabled'] ?? true),
                 'display_order' => (int) ($row['display_order'] ?? 0),
+            ]);
+            $existed ? $updated++ : $created++;
+        }
+
+        return ['created' => $created, 'updated' => $updated, 'skipped' => $skipped];
+    }
+
+    /** @return array{created: int, updated: int, skipped: list<string>} */
+    private function importMessageTemplates(array $rows): array
+    {
+        $created = 0;
+        $updated = 0;
+        $skipped = [];
+
+        // Only keys the current release knows about — an import can't invent
+        // template rows the app never reads.
+        $known = array_keys(MessageTemplateSeeder::defaults());
+
+        foreach ($rows as $i => $row) {
+            $key = trim((string) ($row['key'] ?? ''));
+            if ($key === '' || ! in_array($key, $known, true)) {
+                $skipped[] = 'Message template #'.($i + 1).': unknown key "'.$key.'" — ignored.';
+
+                continue;
+            }
+
+            $existed = MessageTemplate::where('key', $key)->exists();
+            MessageTemplate::updateOrCreate(['key' => $key], [
+                'subject' => $row['subject'] ?? null,
+                'intro' => $row['intro'] ?? null,
+                'enabled' => (bool) ($row['enabled'] ?? true),
             ]);
             $existed ? $updated++ : $created++;
         }

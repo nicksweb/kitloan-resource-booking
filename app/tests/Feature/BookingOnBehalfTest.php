@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Booking\BookingEdit;
 use App\Livewire\Booking\BookingWizard;
+use App\Models\AuditEvent;
 use App\Models\Booking;
 use App\Models\Resource;
 use App\Models\ResourcePool;
@@ -46,7 +47,7 @@ class BookingOnBehalfTest extends TestCase
             'event_type' => 'booking.created',
         ]);
         $this->assertStringContainsString('on behalf of Ms Teacher',
-            \App\Models\AuditEvent::where('event_type', 'booking.created')->value('description'));
+            AuditEvent::where('event_type', 'booking.created')->value('description'));
     }
 
     public function test_a_plain_user_cannot_set_the_requestor_to_someone_else(): void
@@ -91,6 +92,6 @@ class BookingOnBehalfTest extends TestCase
 
         $this->assertSame($newOwner->id, $booking->fresh()->booked_by_user_id);
         $this->assertStringContainsString('reassigned to New Owner',
-            \App\Models\AuditEvent::where('event_type', 'booking.updated')->latest('id')->value('description'));
+            AuditEvent::where('event_type', 'booking.updated')->latest('id')->value('description'));
     }
 }

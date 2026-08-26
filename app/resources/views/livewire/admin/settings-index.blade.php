@@ -73,6 +73,91 @@
             <p class="mt-1 text-xs text-gray-400">Turn this off day-to-day (e.g. once SSO is confirmed healthy again) without needing server access. Turning it back on does not require a redeploy.</p>
         </div>
 
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 class="text-sm font-semibold text-gray-900">Embedding</h2>
+            <p class="mt-1 text-xs text-gray-500">
+                Allow named sites (an intranet, a portal) to show Kitloan inside an <code>&lt;iframe&gt;</code>.
+                When on, an embedded page also attempts a silent SSO sign-in before showing a login button, so a
+                visitor already signed in to your identity provider elsewhere lands straight on their bookings.
+            </p>
+
+            <label class="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" wire:model="embeddingEnabled" class="rounded border-gray-300 text-indigo-600">
+                Allow embedding on the sites listed below
+            </label>
+
+            <div class="mt-3">
+                <label class="block text-xs font-medium text-gray-700">Allowed parent origins</label>
+                <textarea wire:model="embeddingAllowedOrigins" rows="3" placeholder="https://intranet.example.edu&#10;https://portal.example.edu"
+                          class="mt-1 block w-full rounded-md border-gray-300 text-sm font-mono"></textarea>
+                <p class="mt-1 text-xs text-gray-400">One origin per line (scheme + host, no path). Leave the toggle off to forbid all embedding.</p>
+            </div>
+
+            <div class="mt-3 rounded-md bg-gray-50 p-3 text-xs text-gray-600">
+                Embed snippet:
+                <code class="block mt-1 break-all">&lt;iframe src="{{ rtrim(config('app.url'), '/') }}/?embed=1" style="width:100%;height:800px;border:0"&gt;&lt;/iframe&gt;</code>
+            </div>
+        </div>
+
         <button wire:click="save" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Save Settings</button>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 class="text-sm font-semibold text-gray-900">Configuration export / import</h2>
+            <p class="mt-1 text-xs text-gray-500">
+                Move non-secret configuration between instances as a JSON bundle. Secrets (SSO / SMTP / Snipe-IT
+                credentials) live in the environment and are never included. Import is upsert-only &mdash; it never deletes anything.
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <button wire:click="exportSettings" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Export settings</button>
+                <button wire:click="exportFullConfig" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Export full configuration</button>
+                <button wire:click="openConfigImport" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Import&hellip;</button>
+            </div>
+        </div>
     </div>
+
+    @if ($showConfigImport)
+        <div class="fixed inset-0 z-10 flex items-center justify-center bg-gray-900/50 p-4">
+            <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+                <h2 class="text-lg font-semibold text-gray-900">Import configuration</h2>
+                <p class="mt-1 text-xs text-gray-500">Upload a bundle produced by one of the Export buttons. Choose which sections to apply.</p>
+
+                <div class="mt-4">
+                    <input type="file" wire:model="configImportFile" accept=".json,application/json" class="block w-full text-sm">
+                    <div wire:loading wire:target="configImportFile" class="mt-1 text-xs text-gray-500">Uploading&hellip;</div>
+                    @error('configImportFile') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                    @foreach (\App\Services\Config\ConfigTransferService::SECTIONS as $section)
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" value="{{ $section }}" wire:model="configImportSections" class="rounded border-gray-300 text-indigo-600">
+                            {{ ucfirst(str_replace('_', ' ', $section)) }}
+                        </label>
+                    @endforeach
+                </div>
+                @error('configImportSections') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+
+                @if ($configImportResults && ($configImportResults['ok'] ?? false))
+                    <div class="mt-4 rounded-md bg-gray-50 p-3 text-xs">
+                        @foreach ($configImportResults['sections'] as $name => $r)
+                            <p class="font-medium text-gray-700">{{ ucfirst(str_replace('_', ' ', $name)) }}: {{ $r['created'] }} created, {{ $r['updated'] }} updated, {{ count($r['skipped']) }} skipped.</p>
+                            @if (!empty($r['skipped']))
+                                <ul class="mb-2 mt-0.5 space-y-0.5 text-amber-700">
+                                    @foreach ($r['skipped'] as $reason)<li>{{ $reason }}</li>@endforeach
+                                </ul>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+
+                <div class="mt-6 flex justify-end gap-2">
+                    <button wire:click="$set('showConfigImport', false)" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">Close</button>
+                    <button wire:click="importConfig" wire:loading.attr="disabled" wire:target="importConfig" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                        <span wire:loading.remove wire:target="importConfig">Import</span>
+                        <span wire:loading wire:target="importConfig">Importing&hellip;</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

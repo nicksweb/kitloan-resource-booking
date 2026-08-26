@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Mail\TestEmail;
+use App\Services\Config\ConfigTransferService;
 use App\Settings\SettingsRepository;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -45,6 +46,20 @@ class SettingsIndex extends Component
 
     public bool $localLoginEnabled;
 
+    public bool $embeddingEnabled;
+
+    public string $embeddingAllowedOrigins;
+
+    public bool $showConfigImport = false;
+
+    public $configImportFile = null;
+
+    /** @var array<int, string> */
+    public array $configImportSections = ['settings'];
+
+    /** @var array{ok: bool, error?: string, sections: array<string, mixed>}|null */
+    public ?array $configImportResults = null;
+
     public function mount(SettingsRepository $settings): void
     {
         $this->siteName = (string) $settings->get('site_name');
@@ -61,6 +76,8 @@ class SettingsIndex extends Component
         $this->currentLogoPath = $settings->get('site_logo_path');
         $this->testEmailAddress = auth()->user()->email;
         $this->localLoginEnabled = (bool) $settings->get('local_login_enabled', true);
+        $this->embeddingEnabled = (bool) $settings->get('embedding_enabled', false);
+        $this->embeddingAllowedOrigins = (string) $settings->get('embedding_allowed_origins', '');
     }
 
     public function render()
@@ -128,7 +145,77 @@ class SettingsIndex extends Component
         $settings->set('it_notification_address', $data['itNotificationAddress'] ?? '');
         $settings->set('helpdesk_reply_to_address', $data['helpdeskReplyToAddress'] ?? '');
         $settings->set('local_login_enabled', $this->localLoginEnabled, 'boolean');
+        $settings->set('embedding_enabled', $this->embeddingEnabled, 'boolean');
+        $settings->set('embedding_allowed_origins', trim($this->normaliseOrigins($this->embeddingAllowedOrigins)));
 
         session()->flash('success', 'Settings saved.');
+    }
+
+    /** One origin per line, blanks and obvious junk dropped. */
+    private function normaliseOrigins(string $raw): string
+    {
+        return collect(preg_split('/[\s,]+/', $raw))
+            ->map(fn ($o) => trim((string) $o))
+            ->filter(fn ($o) => $o !== '' && preg_match('#^https?://[^/\s]+$#', $o))
+            ->unique()
+            ->implode("\n");
+    }
+
+    // ---- configuration export / import --------------------------------
+
+    public function exportSettings(ConfigTransferService $transfer)
+    {
+        return $this->downloadBundle($transfer->export(['settings']), 'kitloan-settings');
+    }
+
+    public function exportFullConfig(ConfigTransferService $transfer)
+    {
+        return $this->downloadBundle($transfer->export(), 'kitloan-config');
+    }
+
+    private function downloadBundle(array $bundle, string $prefix)
+    {
+        return response()->streamDownload(
+            fn () => print(json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            $prefix.'-'.now()->format('Y-m-d').'.json',
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    public function openConfigImport(): void
+    {
+        $this->reset(['configImportFile', 'configImportResults']);
+        $this->configImportSections = ['settings'];
+        $this->showConfigImport = true;
+    }
+
+    public function importConfig(ConfigTransferService $transfer): void
+    {
+        $this->validate([
+            'configImportFile' => ['required', 'file', 'mimes:json,txt', 'max:10240'],
+            'configImportSections' => ['required', 'array', 'min:1'],
+            'configImportSections.*' => ['in:'.implode(',', ConfigTransferService::SECTIONS)],
+        ]);
+
+        $decoded = json_decode(file_get_contents($this->configImportFile->getRealPath()), true);
+        if (! is_array($decoded)) {
+            $this->addError('configImportFile', 'That file is not valid JSON.');
+
+            return;
+        }
+
+        $result = $transfer->import($decoded, $this->configImportSections);
+        $this->configImportResults = $result;
+
+        if (! $result['ok']) {
+            $this->addError('configImportFile', $result['error'] ?? 'Import failed.');
+
+            return;
+        }
+
+        // Reload the on-screen values from what was just imported.
+        $this->mount(app(SettingsRepository::class));
+        $this->configImportFile = null;
+        session()->flash('success', 'Configuration imported.');
     }
 }

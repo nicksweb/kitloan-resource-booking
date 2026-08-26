@@ -35,6 +35,7 @@ Route::get('/bookings/{booking:reference}/view', [PublicBookingViewController::c
 Route::middleware('throttle:20,1')->group(function () {
     Route::get('/auth/login', [OidcController::class, 'showLogin'])->name('auth.login');
     Route::get('/auth/redirect', [OidcController::class, 'redirect'])->name('auth.redirect');
+    Route::get('/auth/silent', [OidcController::class, 'silent'])->name('auth.silent');
     Route::get('/auth/callback', [OidcController::class, 'callback'])->name('auth.callback');
 });
 Route::post('/auth/logout', [OidcController::class, 'logout'])->name('auth.logout');

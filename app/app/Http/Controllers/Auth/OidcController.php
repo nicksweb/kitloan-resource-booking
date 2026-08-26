@@ -32,16 +32,54 @@ class OidcController extends Controller
         return redirect()->away($url);
     }
 
+    /**
+     * Silent (no-prompt) sign-in — used by an embedded page to pick up an
+     * existing IdP session without showing a button. The provider is asked
+     * with `prompt=none`: if the user already has a session there it returns a
+     * code immediately, otherwise it returns `login_required` and the callback
+     * quietly falls back to the normal login screen (no error banner).
+     */
+    public function silent(Request $request, OidcClient $client): RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->to(route('home'));
+        }
+
+        if (! config('oidc.enabled')) {
+            return redirect()->route('auth.login');
+        }
+
+        [$url, $state] = $client->authorizationUrl(['prompt' => 'none']);
+
+        $request->session()->put('oidc.state', $state);
+        $request->session()->put('oidc.silent', true);
+        $request->session()->put('oidc.intended', $request->query('redirect'));
+
+        return redirect()->away($url);
+    }
+
     public function callback(Request $request, OidcClient $client, UserProvisioningService $provisioning): RedirectResponse
     {
         $expectedState = $request->session()->pull('oidc.state');
         $intended = $request->session()->pull('oidc.intended');
+        $silent = (bool) $request->session()->pull('oidc.silent', false);
 
         if (! $expectedState || $request->query('state') !== $expectedState) {
+            if ($silent) {
+                return redirect()->route('auth.login')->with('silent_failed', true);
+            }
+
             return redirect()->route('auth.login')->with('error', 'Your sign-in session expired. Please try again.');
         }
 
         if ($request->query('error')) {
+            // A silent attempt legitimately fails with login_required /
+            // interaction_required when there's no usable IdP session — fall
+            // back to the button without alarming the visitor.
+            if ($silent) {
+                return redirect()->route('auth.login')->with('silent_failed', true);
+            }
+
             // Surfaced server-side only (never to the visitor — it can contain
             // provider-internal detail) so a misconfiguration is diagnosable
             // from `docker compose logs app` instead of only the access log.

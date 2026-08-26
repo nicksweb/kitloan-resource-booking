@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EmbedSessionConfig;
+use App\Http\Middleware\FrameEmbedding;
 use App\Http\Middleware\EnsureUserEnabled;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,7 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Before StartSession: promote the session cookie to SameSite=None for
+        // cross-site iframe embedding when that's enabled.
+        $middleware->prependToGroup('web', EmbedSessionConfig::class);
+
         $middleware->appendToGroup('web', EnsureUserEnabled::class);
+        // After everything: emit the frame-ancestors / X-Frame-Options headers
+        // and remember an ?embed=1 visit for the rest of the session.
+        $middleware->appendToGroup('web', FrameEmbedding::class);
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);

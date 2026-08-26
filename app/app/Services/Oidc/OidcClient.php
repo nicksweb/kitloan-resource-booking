@@ -42,13 +42,19 @@ class OidcClient
         ]);
     }
 
-    public function authorizationUrl(): array
+    /**
+     * @param  array<string, string>  $extra  Extra authorization params, e.g.
+     *                                         ['prompt' => 'none'] for a silent
+     *                                         (no-UI) sign-in attempt.
+     * @return array{0: string, 1: string} [authorization URL, state]
+     */
+    public function authorizationUrl(array $extra = []): array
     {
         $provider = $this->provider();
 
         $url = $provider->getAuthorizationUrl([
             'scope' => config('oidc.scopes'),
-        ]);
+        ] + $extra);
 
         return [$url, $provider->getState()];
     }

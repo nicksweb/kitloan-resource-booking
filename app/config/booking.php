@@ -20,5 +20,13 @@ return [
         'it_notification_address' => env('IT_NOTIFICATION_ADDRESS'),
         'helpdesk_reply_to_address' => env('HELPDESK_REPLY_TO_ADDRESS'),
         'admin_seed_emails' => env('ADMIN_SEED_EMAILS', ''),
+
+        // Iframe embedding. Off by default: the app sends
+        // `X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'` and can only
+        // be framed by itself. Turn it on and list the parent origins (one per
+        // line, or comma-separated, scheme + host, e.g. https://intranet.example.edu)
+        // to allow those sites to embed it — see README § "Embedding".
+        'embedding_enabled' => filter_var(env('BOOKING_EMBEDDING_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'embedding_allowed_origins' => env('BOOKING_EMBEDDING_ALLOWED_ORIGINS', ''),
     ],
 ];

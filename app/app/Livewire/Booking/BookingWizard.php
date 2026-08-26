@@ -3,11 +3,13 @@
 namespace App\Livewire\Booking;
 
 use App\Exceptions\BookingConflictException;
+use App\Models\Booking;
 use App\Models\BookingType;
 use App\Models\Location;
 use App\Models\Resource;
 use App\Models\ResourcePool;
 use App\Models\SchedulePeriod;
+use App\Models\User;
 use App\Services\Auth\ImpersonationManager;
 use App\Services\Booking\ApprovalEvaluator;
 use App\Services\Booking\AvailabilityService;
@@ -60,11 +62,19 @@ class BookingWizard extends Component
      */
     public ?int $quickPeriodId = null;
 
+    /**
+     * Whose booking this is. Defaults to the current user; IT/admin can point
+     * it at anyone (see canBookForOthers()). created_by always stays the real
+     * actor for the audit trail.
+     */
+    public ?int $bookedByUserId = null;
+
     public function mount(ResourcePool $resourcePool, SettingsRepository $settings): void
     {
         abort_unless($resourcePool->enabled, 404);
 
         $this->pool = $resourcePool;
+        $this->bookedByUserId = auth()->id();
         $this->useSpecificSelection = $resourcePool->isIndividuallyTracked();
 
         [$this->date, $this->startTime] = $this->defaultWindow($resourcePool, $settings);
@@ -156,6 +166,23 @@ class BookingWizard extends Component
     public function render()
     {
         return view('livewire.booking.booking-wizard');
+    }
+
+    #[Computed]
+    public function canBookForOthers(): bool
+    {
+        return auth()->user()->can('createForOthers', Booking::class);
+    }
+
+    #[Computed]
+    public function bookableUsers()
+    {
+        if (! $this->canBookForOthers()) {
+            return collect();
+        }
+
+        return User::query()->orderBy('name')->get(['id', 'name', 'email'])
+            ->map(fn (User $u) => ['value' => $u->id, 'label' => "{$u->name} — {$u->email}"]);
     }
 
     #[Computed]
@@ -313,11 +340,16 @@ class BookingWizard extends Component
             ->values()
             ->all();
 
-        // booked_by is whoever the session is currently authenticated as
-        // (the impersonated user, if impersonating); created_by is the real
-        // actor — an admin impersonating someone to book on their behalf
-        // should show up as such in the audit trail, not as the user itself.
+        // created_by is the real actor — an admin impersonating someone, or an
+        // operator booking on another user's behalf, should show up as such in
+        // the audit trail, not as the requestor.
         $actor = app(ImpersonationManager::class)->actor() ?? auth()->user();
+
+        // booked_by is the requestor: the current session user, unless a
+        // privileged user explicitly picked someone else.
+        $bookedBy = ($this->canBookForOthers() && $this->bookedByUserId)
+            ? User::findOrFail($this->bookedByUserId)
+            : auth()->user();
 
         try {
             $booking = $bookingService->create([
@@ -329,7 +361,7 @@ class BookingWizard extends Component
                 'notes' => $this->notes ?: null,
                 'students' => $students,
                 'items' => $items,
-            ], auth()->user(), $actor);
+            ], $bookedBy, $actor);
         } catch (BookingConflictException $e) {
             $this->conflictError = $e->getMessage();
             unset($this->resourceGrid, $this->availableQuantity);
@@ -352,6 +384,7 @@ class BookingWizard extends Component
             'bookingTypeId' => [$this->pool->requires_booking_type ? 'required' : 'nullable', 'exists:booking_types,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'studentNamesRaw' => [$this->pool->requires_student ? 'required' : 'nullable', 'string', 'max:2000'],
+            'bookedByUserId' => ['nullable', 'integer', 'exists:users,id'],
         ];
 
         if ($this->useSpecificSelection) {

@@ -9,6 +9,7 @@ use App\Models\Location;
 use App\Models\Resource;
 use App\Models\ResourcePool;
 use App\Models\SchedulePeriod;
+use App\Models\User;
 use App\Services\Auth\ImpersonationManager;
 use App\Services\Booking\ApprovalEvaluator;
 use App\Services\Booking\AvailabilityService;
@@ -59,6 +60,9 @@ class BookingEdit extends Component
      */
     public ?int $quickPeriodId = null;
 
+    /** The requestor. Reassignable by IT/admin (see canBookForOthers()). */
+    public ?int $bookedByUserId = null;
+
     public function mount(Booking $booking): void
     {
         $this->authorize('update', $booking);
@@ -73,6 +77,7 @@ class BookingEdit extends Component
         $this->endTime = $booking->end_at->clone()->timezone($tz)->format('H:i');
         $this->locationId = $booking->location_id;
         $this->bookingTypeId = $booking->booking_type_id;
+        $this->bookedByUserId = $booking->booked_by_user_id;
         $this->notes = (string) $booking->notes;
         $this->studentNamesRaw = $booking->students->pluck('student_name')->join("\n");
 
@@ -94,6 +99,23 @@ class BookingEdit extends Component
     public function render()
     {
         return view('livewire.booking.booking-edit');
+    }
+
+    #[Computed]
+    public function canBookForOthers(): bool
+    {
+        return auth()->user()->can('createForOthers', Booking::class);
+    }
+
+    #[Computed]
+    public function bookableUsers()
+    {
+        if (! $this->canBookForOthers()) {
+            return collect();
+        }
+
+        return User::query()->orderBy('name')->get(['id', 'name', 'email'])
+            ->map(fn (User $u) => ['value' => $u->id, 'label' => "{$u->name} — {$u->email}"]);
     }
 
     #[Computed]
@@ -278,17 +300,23 @@ class BookingEdit extends Component
 
         $actor = app(ImpersonationManager::class)->actor() ?? auth()->user();
 
+        $payload = [
+            'resource_pool_id' => $this->pool->id,
+            'location_id' => $this->locationId,
+            'booking_type_id' => $this->bookingTypeId,
+            'start_at' => $start,
+            'end_at' => $end,
+            'notes' => $this->notes ?: null,
+            'students' => $students,
+            'items' => $items,
+        ];
+
+        if ($this->canBookForOthers() && $this->bookedByUserId) {
+            $payload['booked_by_user_id'] = (int) $this->bookedByUserId;
+        }
+
         try {
-            $booking = $bookingService->update($this->booking, [
-                'resource_pool_id' => $this->pool->id,
-                'location_id' => $this->locationId,
-                'booking_type_id' => $this->bookingTypeId,
-                'start_at' => $start,
-                'end_at' => $end,
-                'notes' => $this->notes ?: null,
-                'students' => $students,
-                'items' => $items,
-            ], $actor);
+            $booking = $bookingService->update($this->booking, $payload, $actor);
         } catch (BookingConflictException $e) {
             $this->conflictError = $e->getMessage();
             unset($this->resourceGrid, $this->availableQuantity);
@@ -311,6 +339,7 @@ class BookingEdit extends Component
             'bookingTypeId' => [$this->pool->requires_booking_type ? 'required' : 'nullable', 'exists:booking_types,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'studentNamesRaw' => [$this->pool->requires_student ? 'required' : 'nullable', 'string', 'max:2000'],
+            'bookedByUserId' => ['nullable', 'integer', 'exists:users,id'],
         ];
 
         if ($this->useSpecificSelection) {

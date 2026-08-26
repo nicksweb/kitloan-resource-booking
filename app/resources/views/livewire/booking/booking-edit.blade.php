@@ -22,6 +22,18 @@
         {{-- Left: booking details --}}
         <div class="lg:col-span-1 space-y-5 rounded-xl border border-gray-200 bg-white p-5 h-fit">
             <div class="grid grid-cols-1 gap-4">
+                @if ($this->canBookForOthers)
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Requestor</label>
+                        <x-searchable-select
+                            wire:model="bookedByUserId"
+                            :options="$this->bookableUsers"
+                            :allow-clear="false"
+                            placeholder="Choose a requestor…"
+                            search-placeholder="Search people…"
+                        />
+                    </div>
+                @endif
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Date</label>
                     <input type="date" wire:model.live="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">

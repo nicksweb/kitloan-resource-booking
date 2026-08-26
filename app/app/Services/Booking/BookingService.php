@@ -124,11 +124,12 @@ class BookingService
             $booking->allocation_status = 'allocated';
             $booking->save();
 
+            $onBehalf = $bookedBy->id !== $createdBy->id ? " on behalf of {$bookedBy->name}" : '';
             $this->auditLogger->log(
                 'booking.created',
                 $override
-                    ? "{$createdBy->name} created {$booking->reference} (conflict override)"
-                    : "{$createdBy->name} created {$booking->reference}",
+                    ? "{$createdBy->name} created {$booking->reference}{$onBehalf} (conflict override)"
+                    : "{$createdBy->name} created {$booking->reference}{$onBehalf}",
                 $createdBy,
                 $booking->id,
             );
@@ -205,7 +206,15 @@ class BookingService
             ->where('resource_pool_id', $booking->resource_pool_id)
             ->value('quantity_requested');
 
-        $updated = DB::transaction(function () use ($booking, $data, $items, $primaryPool, $start, $end, $actor, $override, $isPrivileged, $before, $wasApproved, $previousPrimaryQuantity) {
+        // Only a caller with approval authority may reassign the requestor.
+        $reassignTo = null;
+        if ($isPrivileged
+            && ! empty($data['booked_by_user_id'])
+            && (int) $data['booked_by_user_id'] !== $booking->booked_by_user_id) {
+            $reassignTo = User::findOrFail($data['booked_by_user_id']);
+        }
+
+        $updated = DB::transaction(function () use ($booking, $data, $items, $primaryPool, $start, $end, $actor, $override, $isPrivileged, $before, $wasApproved, $previousPrimaryQuantity, $reassignTo) {
             $oldItemIds = $booking->items()->pluck('id');
             BookingResourceAllocation::whereIn('booking_item_id', $oldItemIds)->whereNull('released_at')->update(['released_at' => now()]);
             $booking->items()->delete();
@@ -219,7 +228,7 @@ class BookingService
                 'notes' => $data['notes'] ?? null,
                 'conflict_override' => $override,
                 'override_reason' => $data['override_reason'] ?? null,
-            ]);
+            ] + ($reassignTo ? ['booked_by_user_id' => $reassignTo->id] : []));
 
             if (array_key_exists('students', $data)) {
                 $booking->students()->delete();
@@ -285,11 +294,12 @@ class BookingService
 
             $after = $booking->only(['start_at', 'end_at', 'location_id', 'booking_type_id']);
 
+            $reassignNote = $reassignTo ? " (reassigned to {$reassignTo->name})" : '';
             $this->auditLogger->log(
                 'booking.updated',
                 $override
-                    ? "{$actor->name} amended {$booking->reference} (conflict override)"
-                    : "{$actor->name} amended {$booking->reference}",
+                    ? "{$actor->name} amended {$booking->reference}{$reassignNote} (conflict override)"
+                    : "{$actor->name} amended {$booking->reference}{$reassignNote}",
                 $actor,
                 $booking->id,
                 null,

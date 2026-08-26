@@ -9,7 +9,7 @@
 <body class="h-full">
 <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-sm text-center">
-        <x-laptop-icon class="mx-auto w-12 h-12 text-indigo-600" />
+        <x-app-logo icon-class="mx-auto w-12 h-12 text-indigo-600" img-class="mx-auto h-12 w-auto max-w-[240px]" />
         <h1 class="mt-4 text-xl font-semibold tracking-tight text-gray-900">{{ config('app.name') }}</h1>
     </div>
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">

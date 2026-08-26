@@ -24,7 +24,7 @@
             <div class="flex h-16 justify-between">
                 <div class="flex">
                     <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2 font-semibold text-gray-900">
-                        <x-laptop-icon class="w-7 h-7 text-indigo-600" />
+                        <x-app-logo icon-class="w-7 h-7 text-indigo-600" img-class="h-8 w-auto max-w-[180px]" />
                         <span class="hidden sm:inline">{{ config('app.name') }}</span>
                     </a>
                     <div class="hidden sm:ml-8 sm:flex sm:space-x-6">

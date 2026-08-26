@@ -11,10 +11,14 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700">Site Logo</label>
                     @if ($currentLogoPath)
-                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($currentLogoPath) }}" alt="Current logo" class="mt-2 h-10">
+                        <div class="mt-2 flex items-center gap-3">
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($currentLogoPath) }}" alt="Current logo" class="h-8 rounded bg-gray-50 p-1 ring-1 ring-gray-200">
+                            <button type="button" wire:click="removeLogo" wire:confirm="Remove the logo and go back to the default mark?" class="text-xs text-red-600 hover:underline">Remove logo</button>
+                        </div>
                     @endif
                     <input type="file" wire:model="logo" accept="image/png,image/jpeg,image/svg+xml" class="mt-1 block w-full text-sm">
                     <div wire:loading wire:target="logo" class="text-xs text-gray-500">Uploading&hellip;</div>
+                    <p class="mt-1 text-xs text-gray-400">PNG or SVG, roughly 240&times;64 px (shown ~32 px tall), max 2&nbsp;MB. With no logo set, the built-in mark is used.</p>
                     @error('logo')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
             </div>
@@ -96,6 +100,16 @@
             <div class="mt-3 rounded-md bg-gray-50 p-3 text-xs text-gray-600">
                 Embed snippet:
                 <code class="block mt-1 break-all">&lt;iframe src="{{ rtrim(config('app.url'), '/') }}/?embed=1" style="width:100%;height:800px;border:0"&gt;&lt;/iframe&gt;</code>
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 class="text-sm font-semibold text-gray-900">Housekeeping</h2>
+            <div class="mt-3">
+                <label class="block text-xs font-medium text-gray-700">Audit-log retention (months)</label>
+                <input type="number" min="0" max="120" wire:model="auditRetentionMonths" class="mt-1 block w-24 rounded-md border-gray-300 text-sm">
+                @error('auditRetentionMonths')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                <p class="mt-1 text-xs text-gray-400">Entries older than this are deleted nightly. <strong>0</strong> keeps everything. You can also purge on demand from Administration&nbsp;&rarr;&nbsp;Audit&nbsp;Log.</p>
             </div>
         </div>
 

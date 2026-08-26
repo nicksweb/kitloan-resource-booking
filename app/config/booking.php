@@ -28,5 +28,10 @@ return [
         // to allow those sites to embed it — see README § "Embedding".
         'embedding_enabled' => filter_var(env('BOOKING_EMBEDDING_ENABLED', false), FILTER_VALIDATE_BOOL),
         'embedding_allowed_origins' => env('BOOKING_EMBEDDING_ALLOWED_ORIGINS', ''),
+
+        // Auto-delete audit-log entries older than this many months on the
+        // daily scheduler. 0 = keep forever. Editable under
+        // Administration -> Settings -> Housekeeping.
+        'audit_retention_months' => (int) env('BOOKING_AUDIT_RETENTION_MONTHS', 0),
     ],
 ];

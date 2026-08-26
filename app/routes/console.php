@@ -20,3 +20,7 @@ Schedule::command('bookings:send-reminders')
 Schedule::command('bookings:send-daily-summary')
     ->dailyAt('07:00')
     ->withoutOverlapping();
+
+Schedule::command('audit:prune')
+    ->dailyAt('02:00')
+    ->withoutOverlapping();

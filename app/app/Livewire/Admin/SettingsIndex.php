@@ -50,6 +50,8 @@ class SettingsIndex extends Component
 
     public string $embeddingAllowedOrigins;
 
+    public int $auditRetentionMonths;
+
     public bool $showConfigImport = false;
 
     public $configImportFile = null;
@@ -78,6 +80,7 @@ class SettingsIndex extends Component
         $this->localLoginEnabled = (bool) $settings->get('local_login_enabled', true);
         $this->embeddingEnabled = (bool) $settings->get('embedding_enabled', false);
         $this->embeddingAllowedOrigins = (string) $settings->get('embedding_allowed_origins', '');
+        $this->auditRetentionMonths = (int) $settings->get('audit_retention_months', 0);
     }
 
     public function render()
@@ -117,6 +120,7 @@ class SettingsIndex extends Component
             'itNotificationAddress' => ['nullable', 'email'],
             'helpdeskReplyToAddress' => ['nullable', 'email'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg', 'max:2048'],
+            'auditRetentionMonths' => ['required', 'integer', 'min:0', 'max:120'],
         ]);
 
         if ($this->logo) {
@@ -147,8 +151,22 @@ class SettingsIndex extends Component
         $settings->set('local_login_enabled', $this->localLoginEnabled, 'boolean');
         $settings->set('embedding_enabled', $this->embeddingEnabled, 'boolean');
         $settings->set('embedding_allowed_origins', trim($this->normaliseOrigins($this->embeddingAllowedOrigins)));
+        $settings->set('audit_retention_months', $data['auditRetentionMonths'], 'integer');
 
         session()->flash('success', 'Settings saved.');
+    }
+
+    public function removeLogo(SettingsRepository $settings): void
+    {
+        if ($this->currentLogoPath) {
+            Storage::disk('public')->delete($this->currentLogoPath);
+        }
+
+        $settings->set('site_logo_path', '');
+        $this->currentLogoPath = null;
+        $this->logo = null;
+
+        session()->flash('success', 'Logo removed — the default mark is back.');
     }
 
     /** One origin per line, blanks and obvious junk dropped. */

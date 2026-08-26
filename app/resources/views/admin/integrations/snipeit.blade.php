@@ -2,6 +2,17 @@
     <x-admin.nav />
     <h1 class="text-2xl font-semibold tracking-tight text-gray-900">Snipe-IT Integration</h1>
 
+    @unless ($enabled)
+        <div class="mt-6 max-w-xl rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+            <p class="font-semibold">Not configured on this instance.</p>
+            <p class="mt-1">Snipe-IT credentials are a secret, so they live in the environment, not the database. Add these to <code>.env</code> and redeploy:</p>
+            <pre class="mt-2 overflow-x-auto rounded bg-amber-100/70 p-3 text-xs">SNIPEIT_ENABLED=true
+SNIPEIT_URL=https://snipeit.example.edu
+SNIPEIT_API_TOKEN=your-api-token</pre>
+            <p class="mt-2">Until then the "Import from Snipe-IT" button on a resource pool is shown but disabled.</p>
+        </div>
+    @endunless
+
     <div class="mt-6 max-w-xl rounded-xl border border-gray-200 bg-white p-6">
         <dl class="space-y-3 text-sm">
             <div class="flex justify-between"><dt class="text-gray-500">Status</dt><dd><x-status-badge :status="$enabled ? 'available' : 'disabled'">{{ $enabled ? 'Enabled' : 'Disabled' }}</x-status-badge></dd></div>

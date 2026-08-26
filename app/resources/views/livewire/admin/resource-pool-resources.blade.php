@@ -5,9 +5,14 @@
             <a href="{{ route('admin.resource-pools.index') }}" class="text-xs text-indigo-600 hover:underline">&larr; Resource Pools</a>
             <h1 class="text-2xl font-semibold tracking-tight text-gray-900">{{ $resourcePool->name }} Resources</h1>
         </div>
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
             @if (config('snipeit.enabled'))
                 <button wire:click="openSnipeItImport" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Import from Snipe-IT</button>
+            @else
+                <span class="flex items-center gap-1">
+                    <button type="button" disabled title="The Snipe-IT integration is not configured on this instance" class="cursor-not-allowed rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-400 ring-1 ring-inset ring-gray-200">Import from Snipe-IT</button>
+                    <a href="{{ route('admin.integrations.snipeit') }}" class="text-xs text-indigo-600 hover:underline">Set up&hellip;</a>
+                </span>
             @endif
             <button wire:click="$set('showManualForm', true)" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Add Manual Resource</button>
         </div>
@@ -26,11 +31,14 @@
                         <td class="px-4 py-3 text-gray-500">{{ ucfirst($resource->source) }}</td>
                         <td class="px-4 py-3"><x-status-badge :status="$resource->status" /></td>
                         <td class="px-4 py-3 text-right">
-                            <select wire:change="setStatus({{ $resource->id }}, $event.target.value)" class="rounded-md border-gray-300 text-xs">
-                                @foreach (\App\Models\Resource::STATUSES as $status)
-                                    <option value="{{ $status }}" @selected($resource->status === $status)>{{ ucfirst($status) }}</option>
-                                @endforeach
-                            </select>
+                            <div class="flex items-center justify-end gap-2">
+                                <select wire:change="setStatus({{ $resource->id }}, $event.target.value)" class="rounded-md border-gray-300 text-xs">
+                                    @foreach (\App\Models\Resource::STATUSES as $status)
+                                        <option value="{{ $status }}" @selected($resource->status === $status)>{{ ucfirst($status) }}</option>
+                                    @endforeach
+                                </select>
+                                <button wire:click="deleteResource({{ $resource->id }})" wire:confirm="Delete &quot;{{ $resource->name }}&quot;? Existing bookings that used it keep their history." class="text-xs text-red-600 hover:underline">Delete</button>
+                            </div>
                         </td>
                     </tr>
                 @endforeach

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\ExternalAssetLink;
 use App\Models\Resource;
 use App\Models\ResourcePool;
+use App\Services\Audit\AuditLogger;
 use App\Services\SnipeIt\SnipeItClient;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -186,5 +187,39 @@ class ResourcePoolResources extends Component
     {
         abort_unless(in_array($status, Resource::STATUSES, true), 422);
         $resource->update(['status' => $status]);
+    }
+
+    /**
+     * Soft-delete a single resource. Refused while it holds a live allocation
+     * for an upcoming booking — set its status to "retired" or "unavailable"
+     * instead, or wait for the booking to pass. Past bookings keep their
+     * history regardless.
+     */
+    public function deleteResource(Resource $resource, AuditLogger $auditLogger): void
+    {
+        abort_unless($resource->resource_pool_id === $this->resourcePool->id, 404);
+
+        $hasUpcomingAllocation = $resource->allocations()
+            ->whereNull('released_at')
+            ->whereHas('bookingItem.booking', fn ($q) => $q->where('lifecycle_status', 'active')->where('end_at', '>=', now()))
+            ->exists();
+
+        if ($hasUpcomingAllocation) {
+            session()->flash('error', "\"{$resource->name}\" is allocated to an upcoming booking — retire it instead of deleting.");
+
+            return;
+        }
+
+        $resource->delete();
+
+        $auditLogger->log(
+            'catalog.resource_deleted',
+            auth()->user()->name." deleted resource \"{$resource->name}\" from {$this->resourcePool->name}",
+            auth()->user(),
+            null,
+            $resource->id,
+        );
+
+        session()->flash('success', "Resource \"{$resource->name}\" deleted.");
     }
 }

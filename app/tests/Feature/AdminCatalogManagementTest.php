@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Admin\BookingTypesIndex;
 use App\Livewire\Admin\LocationsIndex;
+use App\Livewire\Admin\ResourcePoolResources;
 use App\Livewire\Admin\ResourcePoolsIndex;
 use App\Models\BookingType;
 use App\Models\Location;
@@ -74,6 +75,38 @@ class AdminCatalogManagementTest extends TestCase
             ->call('delete', $location->id);
 
         $this->assertSoftDeleted('locations', ['id' => $location->id]);
+    }
+
+    public function test_an_individual_resource_can_be_soft_deleted(): void
+    {
+        $pool = ResourcePool::factory()->create();
+        $laptop = Resource::factory()->create(['resource_pool_id' => $pool->id, 'name' => 'Laptop 99']);
+
+        Livewire::actingAs($this->admin())
+            ->test(ResourcePoolResources::class, ['resourcePool' => $pool])
+            ->call('deleteResource', $laptop->id);
+
+        $this->assertSoftDeleted('resources', ['id' => $laptop->id]);
+        $this->assertDatabaseHas('audit_events', ['event_type' => 'catalog.resource_deleted']);
+    }
+
+    public function test_a_resource_allocated_to_an_upcoming_booking_cannot_be_deleted(): void
+    {
+        $pool = ResourcePool::factory()->create();
+        $laptop = Resource::factory()->create(['resource_pool_id' => $pool->id]);
+        $owner = User::factory()->create();
+        app(BookingService::class)->create([
+            'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
+            'start_at' => now()->addDays(2)->setTime(10, 0), 'end_at' => now()->addDays(2)->setTime(11, 0),
+            'notes' => null, 'students' => [],
+            'items' => [['resource_pool_id' => $pool->id, 'quantity' => 1, 'resource_ids' => [$laptop->id]]],
+        ], $owner, $owner);
+
+        Livewire::actingAs($this->admin())
+            ->test(ResourcePoolResources::class, ['resourcePool' => $pool])
+            ->call('deleteResource', $laptop->id);
+
+        $this->assertNotSoftDeleted('resources', ['id' => $laptop->id]);
     }
 
     public function test_a_booking_type_can_be_soft_deleted(): void

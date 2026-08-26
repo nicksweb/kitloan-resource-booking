@@ -28,3 +28,6 @@ nos-resourcebooking
 nos-resourcebooking.pub
 id_*
 *.pem
+
+# Local DB / volume backups
+backups/

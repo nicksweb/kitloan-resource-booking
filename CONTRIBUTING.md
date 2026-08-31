@@ -63,6 +63,13 @@ checklist exists to make that structurally hard to repeat.
   afterthought written after the fact. Keep the top heading's version in sync with `VERSION`.
 - Tag every release (`git tag -a vX.Y.Z -m "..."`) and push the tag along with `main`. Deployed instances track
   tags, not `main` — see [README.md § Updating an existing instance](README.md#updating-an-existing-instance).
+- **Publish a GitHub Release** for the tag:
+  ```bash
+  scripts/release.sh vX.Y.Z          # add --draft to review it on GitHub first
+  ```
+  It assembles the notes from that version's `CHANGELOG.md` section plus a standard, copy-pasteable
+  "Upgrading to vX.Y.Z" command block, so anyone tracking the repo gets both what changed *and* exactly how to
+  update. Needs `gh` authenticated with `repo` scope.
 - Deployed instances finish an upgrade with `php artisan kitloan:upgrade` (the Compose `migrate` service runs
   it). It already clears compiled views on every run, so the "`view:clear` on deploy" habit is now enforced by
   the tooling rather than left to memory.

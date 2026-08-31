@@ -1,10 +1,8 @@
 <x-mail::message>
-# {{ !empty($changes) ? 'Re-approval Needed After Amendment' : 'Approval Needed' }}
+# Booking Confirmed
 
-@if (!empty($intro))
-{!! $intro !!}
+{!! $intro ?? 'A new booking was auto-approved — no action needed.' !!}
 
-@endif
 **Reference:** {{ $booking->reference }}
 **Requester:** {{ $booking->bookedBy->name }}
 @if ($booking->students->isNotEmpty())
@@ -17,28 +15,15 @@
 **Room:** {{ $booking->roomLabel() }}
 **Exam Type:** {{ $booking->bookingType?->name ?? '—' }}
 **Requested:** {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }}
-@if (!empty($changes))
-**What changed:**
-@foreach ($changes as $change)
-- {{ $change }}
-@endforeach
-
-@endif
 @if ($booking->notes)
 **Notes:** {{ $booking->notes }}
 @endif
 
-<x-mail::button :url="$approveUrl" color="success">
-Approve
-</x-mail::button>
-<x-mail::button :url="$rejectUrl" color="error">
-Reject
-</x-mail::button>
 <x-mail::button :url="$viewUrl">
 View Booking
 </x-mail::button>
 
-These links expire in 7 days and require you to be signed in as IT staff.
+A calendar invitation is attached.
 
 Thanks,<br>
 {{ config('app.name') }}

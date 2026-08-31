@@ -9,7 +9,7 @@
 {{ $booking->start_at->format('l j F Y') }}
 {{ $booking->start_at->format('g:i A') }} – {{ $booking->end_at->format('g:i A') }}
 
-**Room:** {{ $booking->location?->name ?? '—' }}
+**Room:** {{ $booking->roomLabel() }}
 **Exam Type:** {{ $booking->bookingType?->name ?? '—' }}
 **Requested:** {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }}
 

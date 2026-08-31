@@ -236,15 +236,31 @@ recorded as theirs, while you stay recorded as who created it (audit: "… creat
 ## Email templates
 
 **Administration → Emails** edits the wording of every notification: a subject line and an opening paragraph
-per message (booking submitted / confirmed / declined / reminder / amended, plus the IT approval, amendment
-and daily-summary emails), and a shared **policy notice** that is appended to every requestor email — the
-place for "all equipment must be returned to IT unless collection has been arranged in advance".
+per message — for the requestor (submitted / confirmed / declined / reminder / amended / assigned-to-you /
+reassigned-away) and for IT (approval request, amendment FYI, new-booking-auto-approved notice, daily
+summary) — plus a shared **policy notice** that is appended to every requestor email — the place for "all
+equipment must be returned to IT unless collection has been arranged in advance".
 
 Placeholders like `{{ reference }}`, `{{ date }}`, `{{ room }}`, `{{ pool }}`, `{{ quantity }}` and
 `{{ requestor_name }}` are filled in per booking; unknown placeholders are left as-is. The text is never
-executed as code. The booking-details table and the calendar (`.ics`) attachment are always included. Leave a
-field blank to fall back to the built-in wording; "Reset to default" restores the shipped text. Templates are
-part of the configuration export/import.
+executed as code. The booking-details table and the calendar (`.ics`) attachment are always included (IT
+emails get the `.ics` too; an approval request's event is marked *tentative* until approved). Leave a field
+blank to fall back to the built-in wording; "Reset to default" restores the shipped text. **Turning a
+template off** suppresses that email class where it's optional — e.g. disable `booking.it_confirmed` if IT
+doesn't want a notice for every auto-approved booking. Templates are part of the configuration export/import.
+
+### Room, pick-up or "to be confirmed"
+
+For a pool that requires a room, the booking wizard and amend screen offer three choices: pick a **Room**,
+**Pick-up from IT** (the requestor collects the equipment; no room needed), or **Other** (room decided
+elsewhere or not known yet — note it in the booking's Notes). Pick-up and Other satisfy the room requirement
+without a location and show as "Pick-up from IT" / "Location TBC" everywhere the room appears.
+
+### Reassigning a booking
+
+IT and administrators can hand a booking to a different staff member — from **Reassign to another staff
+member** on the booking detail page, or by changing the Requestor on the amend screen. Both the new and the
+previous requestor are emailed, and the change is written to the audit log.
 
 ## Reporting
 

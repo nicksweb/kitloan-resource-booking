@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\AttachesBookingIcs;
 use App\Models\Booking;
 use App\Services\Notifications\TemplateRenderer;
 use App\Settings\SettingsRepository;
@@ -21,7 +22,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class BookingAmendedMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use AttachesBookingIcs, Queueable, SerializesModels;
 
     /**
      * @param  array<int, string>  $changes

@@ -4,9 +4,11 @@ namespace App\Services\Notifications;
 
 use App\Mail\BookingAmendedMail;
 use App\Mail\BookingApprovalRequestMail;
+use App\Mail\BookingConfirmedNoticeMail;
 use App\Mail\BookingNotificationMail;
 use App\Models\Booking;
 use App\Settings\SettingsRepository;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -18,11 +20,21 @@ use Illuminate\Support\Facades\Mail;
  */
 class BookingNotifier
 {
-    public function __construct(private readonly SettingsRepository $settings) {}
+    public function __construct(
+        private readonly SettingsRepository $settings,
+        private readonly TemplateRenderer $templates,
+    ) {}
 
     public function sendCreated(Booking $booking): void
     {
-        $this->queueToOwner($booking, $booking->approval_status === 'approved' ? 'approved' : 'pending');
+        if ($booking->approval_status === 'approved') {
+            $this->queueToOwner($booking, 'approved');
+            $this->queueConfirmedNoticeToIt($booking);
+
+            return;
+        }
+
+        $this->queueToOwner($booking, 'pending');
         $this->queueToIt($booking);
     }
 
@@ -51,10 +63,23 @@ class BookingNotifier
      * included, which is the whole point of this notification.
      *
      * @param  array<int, string>  $changes
+     * @param  array{name: string, email: ?string}|null  $previousOwner  Set when the requestor was reassigned
      */
-    public function sendUpdated(Booking $booking, array $changes): void
+    public function sendUpdated(Booking $booking, array $changes, ?array $previousOwner = null): void
     {
-        $this->queueToOwner($booking, $booking->approval_status === 'approved' ? 'approved' : 'pending', $changes);
+        $reassigned = collect($changes)->contains(fn ($c) => str_starts_with($c, 'Requestor changed'));
+
+        if ($reassigned) {
+            // The new owner is told it's now theirs; the previous owner is told
+            // it's no longer theirs. IT still gets the FYI/approval mail below.
+            $this->queueToOwner($booking, 'reassigned_to', $changes);
+
+            if (! empty($previousOwner['email']) && $previousOwner['email'] !== $booking->bookedBy?->email) {
+                $this->queueMail($previousOwner['email'], new BookingNotificationMail($booking, 'reassigned_away', $changes), 'reassigned-away');
+            }
+        } else {
+            $this->queueToOwner($booking, $booking->approval_status === 'approved' ? 'approved' : 'pending', $changes);
+        }
 
         if ($booking->approval_status === 'pending') {
             $this->queueToIt($booking, $changes);
@@ -134,6 +159,36 @@ class BookingNotifier
             Mail::to($itAddress)->queue(new BookingAmendedMail($booking, $changes));
         } catch (\Throwable $e) {
             Log::error('Failed to queue IT amendment FYI email', ['booking' => $booking->reference, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * IT FYI for a new booking that auto-approved. Suppressed when the
+     * `booking.it_confirmed` template is disabled in Administration → Emails.
+     */
+    private function queueConfirmedNoticeToIt(Booking $booking): void
+    {
+        if (! $this->templates->isEnabled('booking.it_confirmed')) {
+            return;
+        }
+
+        $this->queueMail(
+            $this->settings->get('it_notification_address'),
+            new BookingConfirmedNoticeMail($booking),
+            'it-confirmed',
+        );
+    }
+
+    private function queueMail(?string $address, Mailable $mail, string $context): void
+    {
+        if (! $address) {
+            return;
+        }
+
+        try {
+            Mail::to($address)->queue($mail);
+        } catch (\Throwable $e) {
+            Log::error('Failed to queue booking email', ['context' => $context, 'error' => $e->getMessage()]);
         }
     }
 }

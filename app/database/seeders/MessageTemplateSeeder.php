@@ -60,6 +60,18 @@ class MessageTemplateSeeder extends Seeder
                 'subject' => 'Booking updated: {{ reference }}',
                 'intro' => 'Your booking has been amended. The current details are below.',
             ],
+            'booking.owner_reassigned_to' => [
+                'label' => 'Requestor — booking assigned to you',
+                'audience' => 'requestor',
+                'subject' => 'Booking assigned to you: {{ reference }}',
+                'intro' => 'This booking has been assigned to you. The details are below.',
+            ],
+            'booking.owner_reassigned_away' => [
+                'label' => 'Requestor — booking reassigned away',
+                'audience' => 'requestor',
+                'subject' => 'Booking reassigned: {{ reference }}',
+                'intro' => 'This booking is no longer assigned to you — it has been handed to another staff member.',
+            ],
             'booking.policy_notice' => [
                 'label' => 'Requestor — shared policy notice (appended to every email above)',
                 'audience' => 'requestor',
@@ -77,6 +89,12 @@ class MessageTemplateSeeder extends Seeder
                 'audience' => 'it',
                 'subject' => 'Booking amended: {{ reference }}',
                 'intro' => 'A booking was amended and stays approved — no action needed, but the changes are listed below.',
+            ],
+            'booking.it_confirmed' => [
+                'label' => 'IT — new booking auto-approved',
+                'audience' => 'it',
+                'subject' => 'Booking confirmed: {{ reference }}',
+                'intro' => 'A new booking was auto-approved — no action needed. A calendar invitation is attached. (Turn this template off to stop these notices.)',
             ],
             'booking.daily_summary' => [
                 'label' => 'IT — daily summary',

@@ -3,11 +3,14 @@
 namespace App\Livewire;
 
 use App\Models\Booking;
+use App\Models\BookingResourceAllocation;
 use App\Models\Resource;
+use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
 use App\Services\Notifications\BookingNotifier;
+use App\Settings\SettingsRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
@@ -25,6 +28,8 @@ class BookingDetail extends Component
 
     public string $substitutionReason = '';
 
+    public ?int $reassignUserId = null;
+
     public function mount(Booking $booking): void
     {
         $this->authorize('view', $booking);
@@ -37,6 +42,32 @@ class BookingDetail extends Component
     public function render()
     {
         return view('livewire.booking-detail');
+    }
+
+    #[Computed]
+    public function assignableUsers()
+    {
+        if (! Gate::allows('operate-bookings')) {
+            return collect();
+        }
+
+        return User::query()->orderBy('name')->get(['id', 'name', 'email'])
+            ->map(fn (User $u) => ['value' => $u->id, 'label' => "{$u->name} — {$u->email}"]);
+    }
+
+    public function reassign(BookingService $service): void
+    {
+        Gate::authorize('operate-bookings');
+        $this->validate(['reassignUserId' => ['required', 'integer', 'exists:users,id']]);
+
+        $this->booking = $service->reassign(
+            $this->booking,
+            User::findOrFail($this->reassignUserId),
+            auth()->user(),
+        );
+        $this->reassignUserId = null;
+
+        session()->flash('success', "{$this->booking->reference} reassigned to {$this->booking->bookedBy->name}.");
     }
 
     #[Computed]
@@ -96,7 +127,7 @@ class BookingDetail extends Component
                 'rejection_reason' => $reason,
             ]);
 
-            \App\Models\BookingResourceAllocation::whereIn('booking_item_id', $this->booking->items()->pluck('id'))
+            BookingResourceAllocation::whereIn('booking_item_id', $this->booking->items()->pluck('id'))
                 ->whereNull('released_at')->update(['released_at' => now()]);
         });
 
@@ -132,7 +163,7 @@ class BookingDetail extends Component
     {
         Gate::authorize('operate-bookings');
 
-        if (! app(\App\Settings\SettingsRepository::class)->get('it_notification_address')) {
+        if (! app(SettingsRepository::class)->get('it_notification_address')) {
             session()->flash('error', 'No IT notification address is configured (Administration -> Settings).');
 
             return;
@@ -179,12 +210,12 @@ class BookingDetail extends Component
             'substitutionReason' => ['required', 'string', 'max:500'],
         ]);
 
-        $oldAllocation = \App\Models\BookingResourceAllocation::findOrFail($this->substitutingAllocationId);
+        $oldAllocation = BookingResourceAllocation::findOrFail($this->substitutingAllocationId);
 
         DB::transaction(function () use ($oldAllocation) {
             $oldAllocation->update(['released_at' => now()]);
 
-            \App\Models\BookingResourceAllocation::create([
+            BookingResourceAllocation::create([
                 'booking_item_id' => $oldAllocation->booking_item_id,
                 'resource_id' => $this->replacementResourceId,
                 'allocated_at' => now(),

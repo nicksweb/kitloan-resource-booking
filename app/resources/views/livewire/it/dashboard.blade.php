@@ -36,7 +36,7 @@
                     <a href="{{ route('bookings.show', $booking) }}" class="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50">
                         <div>
                             <p class="text-sm font-medium text-gray-900">{{ $booking->start_at->format('g:i A') }} &ndash; {{ $booking->end_at->format('g:i A') }}</p>
-                            <p class="text-sm text-gray-500">{{ $booking->location?->code ?? '—' }} &middot; {{ $booking->items->sum('quantity_requested') }} {{ $booking->resourcePool->name }} &middot; {{ $booking->bookingType?->name }}</p>
+                            <p class="text-sm text-gray-500">{{ $booking->roomCode() }} &middot; {{ $booking->items->sum('quantity_requested') }} {{ $booking->resourcePool->name }} &middot; {{ $booking->bookingType?->name }}</p>
                         </div>
                         <x-status-badge :status="$booking->approval_status" />
                     </a>

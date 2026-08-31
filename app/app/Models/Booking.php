@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
-    'reference', 'resource_pool_id', 'location_id', 'booking_type_id',
+    'reference', 'resource_pool_id', 'location_id', 'room_choice', 'booking_type_id',
     'booked_by_user_id', 'created_by_user_id', 'start_at', 'end_at', 'notes',
     'approval_status', 'allocation_status', 'lifecycle_status', 'auto_approved',
     'conflict_override', 'override_reason',
@@ -89,6 +89,26 @@ class Booking extends Model
     public function isUpcoming(): bool
     {
         return $this->start_at->isFuture() && $this->lifecycle_status === 'active';
+    }
+
+    /** Human-readable room, honouring the pick-up / TBC choices. */
+    public function roomLabel(): string
+    {
+        return match ($this->room_choice) {
+            'pickup' => 'Pick-up from IT',
+            'other' => 'Location TBC — see notes',
+            default => $this->location?->name ?? '—',
+        };
+    }
+
+    /** Short room label for tables / calendar titles. */
+    public function roomCode(): string
+    {
+        return match ($this->room_choice) {
+            'pickup' => 'Pick-up',
+            'other' => 'TBC',
+            default => $this->location?->code ?? '—',
+        };
     }
 
     public function isCancellable(): bool

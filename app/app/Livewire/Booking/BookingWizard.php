@@ -35,6 +35,9 @@ class BookingWizard extends Component
 
     public ?int $locationId = null;
 
+    /** room | pickup | other */
+    public string $roomChoice = 'room';
+
     public ?int $bookingTypeId = null;
 
     public string $studentNamesRaw = '';
@@ -354,7 +357,8 @@ class BookingWizard extends Component
         try {
             $booking = $bookingService->create([
                 'resource_pool_id' => $this->pool->id,
-                'location_id' => $this->locationId,
+                'location_id' => $this->roomChoice === 'room' ? $this->locationId : null,
+                'room_choice' => $this->roomChoice,
                 'booking_type_id' => $this->bookingTypeId,
                 'start_at' => $start,
                 'end_at' => $end,
@@ -380,7 +384,8 @@ class BookingWizard extends Component
             'date' => ['required', 'date'],
             'startTime' => ['required'],
             'endTime' => ['required'],
-            'locationId' => [$this->pool->requires_room ? 'required' : 'nullable', 'exists:locations,id'],
+            'roomChoice' => ['required', 'in:room,pickup,other'],
+            'locationId' => [$this->pool->requires_room && $this->roomChoice === 'room' ? 'required' : 'nullable', 'exists:locations,id'],
             'bookingTypeId' => [$this->pool->requires_booking_type ? 'required' : 'nullable', 'exists:booking_types,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'studentNamesRaw' => [$this->pool->requires_student ? 'required' : 'nullable', 'string', 'max:2000'],

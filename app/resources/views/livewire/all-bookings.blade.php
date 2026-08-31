@@ -39,7 +39,7 @@
                         <a href="{{ route('bookings.show', $booking) }}" class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 hover:bg-gray-50">
                             <div class="flex items-center gap-4">
                                 <span class="w-28 text-sm font-medium text-gray-900">{{ $booking->start_at->format('g:i A') }}&ndash;{{ $booking->end_at->format('g:i A') }}</span>
-                                <span class="text-sm text-gray-700">{{ $booking->location?->code ?? '—' }}</span>
+                                <span class="text-sm text-gray-700">{{ $booking->roomCode() }}</span>
                                 <span class="text-sm text-gray-500">{{ $booking->items->sum('quantity_requested') }} &times; {{ $booking->resourcePool->name }}</span>
                                 <span class="hidden text-sm text-gray-500 sm:inline">{{ $booking->bookedBy->name }}</span>
                             </div>

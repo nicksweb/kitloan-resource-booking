@@ -1,5 +1,9 @@
 <x-mail::message>
-@if (!empty($changes))
+@if ($kind === 'reassigned_to')
+# Booking Assigned To You
+@elseif ($kind === 'reassigned_away')
+# Booking Reassigned
+@elseif (!empty($changes))
 # Booking Updated
 @elseif ($kind === 'pending')
 # Booking Submitted
@@ -13,6 +17,10 @@
 
 @if (!empty($intro))
 {!! $intro !!}
+@elseif ($kind === 'reassigned_to')
+This booking has been assigned to you.
+@elseif ($kind === 'reassigned_away')
+This booking is no longer assigned to you.
 @elseif (!empty($changes))
 Your booking has been amended.
 @elseif ($kind === 'pending')
@@ -30,7 +38,7 @@ Your booking is coming up tomorrow.
 {{ $booking->start_at->format('l j F Y') }}
 {{ $booking->start_at->format('g:i A') }} – {{ $booking->end_at->format('g:i A') }}
 
-**Room:** {{ $booking->location?->name ?? '—' }}
+**Room:** {{ $booking->roomLabel() }}
 **Exam Type:** {{ $booking->bookingType?->name ?? '—' }}
 **Resources:** {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }}
 
@@ -48,7 +56,7 @@ Your booking is coming up tomorrow.
 Please contact IT if you need assistance finding another time.
 @endif
 
-**Status:** {{ $kind === 'rejected' ? 'Declined' : ($kind === 'pending' ? 'Awaiting IT Approval' : 'Approved') }}
+**Status:** {{ match ($booking->approval_status) { 'rejected' => 'Declined', 'pending' => 'Awaiting IT Approval', default => 'Approved' } }}
 
 <x-mail::button :url="$viewUrl">
 View Booking

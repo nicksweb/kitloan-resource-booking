@@ -20,7 +20,7 @@
                     <x-status-badge :status="$booking->lifecycle_status === 'cancelled' ? 'cancelled' : $booking->approval_status" />
                 </div>
                 <p class="mt-1 text-sm text-gray-500">{{ $booking->start_at->format('g:i A') }} &ndash; {{ $booking->end_at->format('g:i A') }}</p>
-                <p class="mt-2 text-sm text-gray-700">{{ $booking->location?->code ?? 'No room' }} &middot; {{ $booking->items->sum('quantity_requested') }} &times; {{ $booking->resourcePool->name }}</p>
+                <p class="mt-2 text-sm text-gray-700">{{ $booking->roomCode() }} &middot; {{ $booking->items->sum('quantity_requested') }} &times; {{ $booking->resourcePool->name }}</p>
                 @if ($booking->bookingType)
                     <p class="text-xs text-gray-500">{{ $booking->bookingType->name }}</p>
                 @endif

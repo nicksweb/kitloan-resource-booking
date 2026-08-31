@@ -57,7 +57,7 @@
                 @forelse ($bookings as $booking)
                     <tr>
                         <td class="whitespace-nowrap px-4 py-3 font-medium text-gray-900">{{ $booking->start_at->format('H:i') }}</td>
-                        <td class="px-4 py-3">{{ $booking->location?->code ?? '—' }}</td>
+                        <td class="px-4 py-3">{{ $booking->roomCode() }}</td>
                         <td class="px-4 py-3">{{ $booking->items->sum('quantity_requested') }}</td>
                         <td class="px-4 py-3">{{ $booking->bookingType?->name ?? $booking->resourcePool->name }}</td>
                         <td class="px-4 py-3">

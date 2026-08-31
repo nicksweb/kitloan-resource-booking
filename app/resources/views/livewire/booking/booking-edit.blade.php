@@ -66,16 +66,7 @@
                 </div>
 
                 @if ($pool->requires_room)
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Room</label>
-                        <x-searchable-select
-                            wire:model="locationId"
-                            :options="$this->locations->map(fn ($l) => ['value' => $l->id, 'label' => $l->code.' — '.$l->name])"
-                            placeholder="Select a room…"
-                            search-placeholder="Search rooms…"
-                        />
-                        @error('locationId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
+                    <x-room-choice :locations="$this->locations" :room-choice="$roomChoice" />
                 @endif
 
                 @if ($pool->requires_booking_type)

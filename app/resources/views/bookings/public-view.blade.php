@@ -12,7 +12,7 @@
             <dl class="space-y-3 text-sm">
                 <div class="flex justify-between"><dt class="text-gray-500">Date</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('D j M Y') }}</dd></div>
                 <div class="flex justify-between"><dt class="text-gray-500">Time</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('g:i A') }} &ndash; {{ $booking->end_at->format('g:i A') }}</dd></div>
-                <div class="flex justify-between"><dt class="text-gray-500">Room</dt><dd class="font-medium text-gray-900">{{ $booking->location?->name ?? '—' }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Room</dt><dd class="font-medium text-gray-900">{{ $booking->roomLabel() }}</dd></div>
                 <div class="flex justify-between"><dt class="text-gray-500">Exam Type</dt><dd class="font-medium text-gray-900">{{ $booking->bookingType?->name ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-gray-500">Resources</dt><dd class="font-medium text-gray-900">{{ $booking->items->sum('quantity_requested') }} &times; {{ $booking->resourcePool->name }}</dd></div>
                 <div class="flex justify-between"><dt class="text-gray-500">Booked by</dt><dd class="font-medium text-gray-900">{{ $booking->bookedBy->name }}</dd></div>

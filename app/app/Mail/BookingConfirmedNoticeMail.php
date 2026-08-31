@@ -12,34 +12,28 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\URL;
 
-class BookingApprovalRequestMail extends Mailable
+/**
+ * IT-facing FYI for a brand-new booking that auto-approved — no action needed,
+ * but IT still wants it on their calendar. When a new booking instead needs
+ * review, BookingApprovalRequestMail is sent (it carries the approve/reject
+ * links). Suppressible by disabling the `booking.it_confirmed` template.
+ */
+class BookingConfirmedNoticeMail extends Mailable
 {
     use AttachesBookingIcs, Queueable, SerializesModels;
 
-    /**
-     * @param  array<int, string>  $changes  Non-empty when this is a re-approval after an amendment
-     */
-    public function __construct(public Booking $booking, public array $changes = []) {}
-
-    protected function icsTentative(): bool
-    {
-        return $this->booking->approval_status !== 'approved';
-    }
+    public function __construct(public Booking $booking) {}
 
     public function envelope(): Envelope
     {
         $settings = app(SettingsRepository::class);
         $renderer = app(TemplateRenderer::class);
-        $fallback = $this->changes
-            ? "Re-approval needed after amendment: {$this->booking->reference}"
-            : "Approval needed: {$this->booking->reference}";
 
         $envelope = new Envelope(subject: $renderer->subject(
-            'booking.it_approval',
+            'booking.it_confirmed',
             $renderer->tokensFor($this->booking),
-            $fallback,
+            "Booking confirmed: {$this->booking->reference}",
         ));
 
         $replyTo = $settings->get('helpdesk_reply_to_address');
@@ -52,18 +46,14 @@ class BookingApprovalRequestMail extends Mailable
 
     public function content(): Content
     {
-        $expiry = now()->addDays(7);
         $renderer = app(TemplateRenderer::class);
 
         return new Content(
-            markdown: 'emails.bookings.approval-request',
+            markdown: 'emails.bookings.it-confirmed',
             with: [
                 'booking' => $this->booking,
-                'changes' => $this->changes,
-                'intro' => $renderer->intro('booking.it_approval', $renderer->tokensFor($this->booking)),
+                'intro' => $renderer->intro('booking.it_confirmed', $renderer->tokensFor($this->booking)),
                 'viewUrl' => route('bookings.show', $this->booking),
-                'approveUrl' => URL::temporarySignedRoute('bookings.approve', $expiry, ['booking' => $this->booking->reference]),
-                'rejectUrl' => URL::temporarySignedRoute('bookings.reject.show', $expiry, ['booking' => $this->booking->reference]),
             ],
         );
     }

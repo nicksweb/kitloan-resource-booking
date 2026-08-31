@@ -55,7 +55,7 @@ class TemplateRenderer
             'date' => $booking->start_at->format('l j F Y'),
             'start_time' => $booking->start_at->format('g:i A'),
             'end_time' => $booking->end_at->format('g:i A'),
-            'room' => (string) ($booking->location?->name ?? '—'),
+            'room' => $booking->roomLabel(),
             'campus' => (string) ($booking->location?->campus ?? ''),
             'pool' => (string) $booking->resourcePool->name,
             'quantity' => (string) $booking->items->sum('quantity_requested'),
@@ -98,6 +98,16 @@ class TemplateRenderer
     public function policyNotice(array $tokens): ?string
     {
         return $this->intro('booking.policy_notice', $tokens);
+    }
+
+    /**
+     * Whether a template is enabled — lets a caller suppress an optional email
+     * class entirely by turning its template off in Administration → Emails.
+     * A key with no row yet is treated as enabled.
+     */
+    public function isEnabled(string $key): bool
+    {
+        return $this->template($key)?->enabled ?? true;
     }
 
     private function template(string $key): ?MessageTemplate

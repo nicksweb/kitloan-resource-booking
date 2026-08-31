@@ -18,7 +18,7 @@
                 <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
                     <div><dt class="text-gray-500">Date</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('D j M Y') }}</dd></div>
                     <div><dt class="text-gray-500">Time</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('g:i A') }} &ndash; {{ $booking->end_at->format('g:i A') }}</dd></div>
-                    <div><dt class="text-gray-500">Room</dt><dd class="font-medium text-gray-900">{{ $booking->location?->name ?? '—' }}</dd></div>
+                    <div><dt class="text-gray-500">Room</dt><dd class="font-medium text-gray-900">{{ $booking->roomLabel() }}</dd></div>
                     <div><dt class="text-gray-500">Exam Type</dt><dd class="font-medium text-gray-900">{{ $booking->bookingType?->name ?? '—' }}</dd></div>
                     <div><dt class="text-gray-500">Booked by</dt><dd class="font-medium text-gray-900">{{ $booking->bookedBy->name }}</dd></div>
                     @if ($booking->createdBy->id !== $booking->bookedBy->id)
@@ -152,6 +152,28 @@
                         <span wire:loading wire:target="resendToIt">Sending&hellip;</span>
                     </button>
                     <p class="text-xs text-gray-500">Sends whatever the booking's current status is (approved bookings include the calendar invite).</p>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-white p-5 space-y-2" x-data="{ picking: false }">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Requestor</h3>
+                    <p class="text-sm text-gray-700">{{ $booking->bookedBy->name }}</p>
+                    <button type="button" x-show="!picking" @click="picking = true" class="text-xs text-indigo-600 hover:underline">Reassign to another staff member</button>
+                    <div x-show="picking" x-cloak class="space-y-2">
+                        <x-searchable-select
+                            wire:model="reassignUserId"
+                            :options="$this->assignableUsers"
+                            placeholder="Choose a staff member…"
+                            search-placeholder="Search people…"
+                            :allow-clear="false"
+                        />
+                        <div class="flex gap-2">
+                            <button type="button" wire:click="reassign" wire:loading.attr="disabled" wire:target="reassign"
+                                    class="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">Reassign</button>
+                            <button type="button" @click="picking = false" class="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">Cancel</button>
+                        </div>
+                        <p class="text-xs text-gray-500">Both the current and the new requestor are emailed.</p>
+                        @error('reassignUserId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
                 </div>
             @endcan
 

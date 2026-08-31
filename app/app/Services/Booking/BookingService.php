@@ -60,10 +60,14 @@ class BookingService
             }
         }
 
-        $booking = DB::transaction(function () use ($data, $items, $primaryPool, $start, $end, $bookedBy, $createdBy, $override) {
+        $roomChoice = in_array($data['room_choice'] ?? 'room', ['room', 'pickup', 'other'], true) ? $data['room_choice'] ?? 'room' : 'room';
+        $locationId = $roomChoice === 'room' ? ($data['location_id'] ?? null) : null;
+
+        $booking = DB::transaction(function () use ($data, $items, $primaryPool, $start, $end, $bookedBy, $createdBy, $override, $roomChoice, $locationId) {
             $booking = Booking::create([
                 'resource_pool_id' => $primaryPool->id,
-                'location_id' => $data['location_id'] ?? null,
+                'location_id' => $locationId,
+                'room_choice' => $roomChoice,
                 'booking_type_id' => $data['booking_type_id'] ?? null,
                 'booked_by_user_id' => $bookedBy->id,
                 'created_by_user_id' => $createdBy->id,
@@ -201,10 +205,16 @@ class BookingService
 
         $before = $booking->only(['start_at', 'end_at', 'location_id', 'booking_type_id']);
         $beforeSnapshot = $this->captureChangeSnapshot($booking);
+        $previousOwner = ['name' => $booking->bookedBy?->name ?? '', 'email' => $booking->bookedBy?->email];
         $wasApproved = $booking->approval_status === 'approved';
         $previousPrimaryQuantity = (int) $booking->items()
             ->where('resource_pool_id', $booking->resource_pool_id)
             ->value('quantity_requested');
+
+        $roomChoice = in_array($data['room_choice'] ?? $booking->room_choice, ['room', 'pickup', 'other'], true)
+            ? ($data['room_choice'] ?? $booking->room_choice)
+            : 'room';
+        $locationId = $roomChoice === 'room' ? ($data['location_id'] ?? null) : null;
 
         // Only a caller with approval authority may reassign the requestor.
         $reassignTo = null;
@@ -214,14 +224,15 @@ class BookingService
             $reassignTo = User::findOrFail($data['booked_by_user_id']);
         }
 
-        $updated = DB::transaction(function () use ($booking, $data, $items, $primaryPool, $start, $end, $actor, $override, $isPrivileged, $before, $wasApproved, $previousPrimaryQuantity, $reassignTo) {
+        $updated = DB::transaction(function () use ($booking, $data, $items, $primaryPool, $start, $end, $actor, $override, $isPrivileged, $before, $wasApproved, $previousPrimaryQuantity, $reassignTo, $roomChoice, $locationId) {
             $oldItemIds = $booking->items()->pluck('id');
             BookingResourceAllocation::whereIn('booking_item_id', $oldItemIds)->whereNull('released_at')->update(['released_at' => now()]);
             $booking->items()->delete();
 
             $booking->update([
                 'resource_pool_id' => $primaryPool->id,
-                'location_id' => $data['location_id'] ?? null,
+                'location_id' => $locationId,
+                'room_choice' => $roomChoice,
                 'booking_type_id' => $data['booking_type_id'] ?? null,
                 'start_at' => $start,
                 'end_at' => $end,
@@ -321,26 +332,61 @@ class BookingService
 
         $changes = $this->summarizeChanges($beforeSnapshot, $this->captureChangeSnapshot($updated));
         if ($changes) {
-            event(new BookingUpdated($updated, $changes));
+            event(new BookingUpdated($updated, $changes, $reassignTo ? $previousOwner : null));
         }
 
         return $updated;
     }
 
     /**
-     * @return array{start_at: CarbonInterface, end_at: CarbonInterface, location_name: ?string, booking_type_name: ?string, quantity: int, pool_name: string}
+     * A lightweight requestor reassignment — no re-allocation, no conflict
+     * re-check, just "this booking is now someone else's responsibility".
+     * Notifies the new and previous owner.
+     */
+    public function reassign(Booking $booking, User $newOwner, User $actor): Booking
+    {
+        abort_unless($actor->can('createForOthers', Booking::class), 403);
+
+        if ($booking->booked_by_user_id === $newOwner->id) {
+            return $booking;
+        }
+
+        $previous = $booking->bookedBy;
+        $previousOwner = ['name' => $previous?->name ?? '', 'email' => $previous?->email];
+
+        $booking->update(['booked_by_user_id' => $newOwner->id]);
+
+        $this->auditLogger->log(
+            'booking.reassigned',
+            "{$actor->name} reassigned {$booking->reference} from ".($previous?->name ?? 'unknown')." to {$newOwner->name}",
+            $actor,
+            $booking->id,
+        );
+
+        $fresh = $booking->fresh(['bookedBy', 'resourcePool', 'location', 'bookingType', 'items']);
+        event(new BookingUpdated($fresh, [
+            'Requestor changed from '.($previous?->name ?? 'unknown')." to {$newOwner->name}",
+        ], $previousOwner));
+
+        return $fresh;
+    }
+
+    /**
+     * @return array{start_at: CarbonInterface, end_at: CarbonInterface, location_name: ?string, room_choice: string, booking_type_name: ?string, quantity: int, pool_name: string, owner_name: ?string}
      */
     private function captureChangeSnapshot(Booking $booking): array
     {
-        $booking->loadMissing(['location', 'bookingType', 'resourcePool', 'items']);
+        $booking->loadMissing(['location', 'bookingType', 'resourcePool', 'items', 'bookedBy']);
 
         return [
             'start_at' => $booking->start_at,
             'end_at' => $booking->end_at,
-            'location_name' => $booking->location?->name,
+            'location_name' => $booking->roomLabel(),
+            'room_choice' => (string) $booking->room_choice,
             'booking_type_name' => $booking->bookingType?->name,
             'quantity' => (int) ($booking->items->firstWhere('resource_pool_id', $booking->resource_pool_id)?->quantity_requested ?? 0),
             'pool_name' => $booking->resourcePool->name,
+            'owner_name' => $booking->bookedBy?->name,
         ];
     }
 
@@ -369,6 +415,10 @@ class BookingService
 
         if ($before['quantity'] !== $after['quantity']) {
             $changes[] = sprintf('%s quantity changed from %d to %d', $after['pool_name'], $before['quantity'], $after['quantity']);
+        }
+
+        if (($before['owner_name'] ?? null) !== ($after['owner_name'] ?? null)) {
+            $changes[] = sprintf('Requestor changed from %s to %s', $before['owner_name'] ?? 'none', $after['owner_name'] ?? 'none');
         }
 
         return $changes;

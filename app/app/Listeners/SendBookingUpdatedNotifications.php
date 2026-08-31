@@ -12,6 +12,6 @@ class SendBookingUpdatedNotifications implements ShouldQueue
 
     public function handle(BookingUpdated $event): void
     {
-        $this->notifier->sendUpdated($event->booking, $event->changes);
+        $this->notifier->sendUpdated($event->booking, $event->changes, $event->previousOwner);
     }
 }

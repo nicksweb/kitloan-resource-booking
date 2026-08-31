@@ -4,6 +4,34 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.4.0] - 2026-08-27
+
+No breaking changes. One additive migration (`bookings.room_choice`, defaults to `room`); its `down()` works.
+`kitloan:upgrade` runs it and re-seeds the message templates, so the new email keys backfill on upgrade.
+
+### Fixed
+
+- **A booking that auto-approved still emailed IT an "Approval needed" request** (with approve/reject links).
+  IT now gets a short "auto-approved — no action needed" notice instead (template `booking.it_confirmed`;
+  turn that template off in Administration → Emails to stop the notices entirely). A booking that genuinely
+  needs review is unchanged.
+- **IT emails carried no calendar invite.** The approval-request, amendment and new confirmed-notice emails
+  to IT now all attach `booking.ics`. The approval-request event is marked `TENTATIVE` until the booking is
+  approved.
+
+### Added
+
+- **Room / Pick-up / Other.** When a resource pool requires a room, the booking wizard and amend screen now
+  offer three choices: pick a **Room**, **Pick-up from IT** (the requestor collects the kit; no room), or
+  **Other** (room decided elsewhere / not known yet — put it in Notes). Pick-up and Other satisfy the room
+  requirement without a location. Every screen, email and calendar file shows "Pick-up from IT" / "Location
+  TBC" instead of a blank room.
+- **Reassign a booking to another staff member.** IT/administrators get a "Reassign to another staff member"
+  control on the booking detail page (and the existing amend-screen "Requestor" picker now notifies too).
+  The new requestor is emailed "assigned to you", the previous requestor "no longer assigned to you", and
+  the change is audited (`booking.reassigned`). New templates `booking.owner_reassigned_to` /
+  `booking.owner_reassigned_away`.
+
 ## [1.3.2] - 2026-08-27
 
 ### Fixed

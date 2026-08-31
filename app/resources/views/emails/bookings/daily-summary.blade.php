@@ -8,7 +8,7 @@
 {{ $bookings->count() }} booking(s) today.
 
 @foreach ($bookings as $booking)
-**{{ $booking->start_at->format('g:i A') }}–{{ $booking->end_at->format('g:i A') }}** — {{ $booking->location?->code ?? 'No room' }} — {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }} ({{ $booking->bookingType?->name ?? 'No type' }}) — {{ ucfirst($booking->approval_status) }} — {{ $booking->reference }}
+**{{ $booking->start_at->format('g:i A') }}–{{ $booking->end_at->format('g:i A') }}** — {{ $booking->roomCode() }} — {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }} ({{ $booking->bookingType?->name ?? 'No type' }}) — {{ ucfirst($booking->approval_status) }} — {{ $booking->reference }}
 @if (!$loop->last)
 
 @endif

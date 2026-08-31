@@ -28,6 +28,13 @@ class BookingNotificationMail extends Mailable
     /** Editable-template key for this notification's kind. */
     private function templateKey(): string
     {
+        if ($this->kind === 'reassigned_to') {
+            return 'booking.owner_reassigned_to';
+        }
+        if ($this->kind === 'reassigned_away') {
+            return 'booking.owner_reassigned_away';
+        }
+
         if ($this->changes) {
             return 'booking.owner_amended';
         }
@@ -43,6 +50,13 @@ class BookingNotificationMail extends Mailable
     private function fallbackSubject(): string
     {
         $ref = $this->booking->reference;
+
+        if ($this->kind === 'reassigned_to') {
+            return "Booking assigned to you: {$ref}";
+        }
+        if ($this->kind === 'reassigned_away') {
+            return "Booking reassigned: {$ref}";
+        }
 
         if ($this->changes) {
             return $this->kind === 'pending'

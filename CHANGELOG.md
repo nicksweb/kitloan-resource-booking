@@ -4,6 +4,19 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.7.0] - 2026-09-02
+
+No breaking changes. One additive migration (`2026_01_09_000000_add_theme_to_users_table`) adds
+`users.theme` (`light` / `dark` / `system`, default `system`) with a working `down()`. `kitloan:upgrade`
+runs it and re-seeds/re-stamps as usual.
+
+### Added
+
+- **Dark mode.** A per-account colour theme — **System** (follows the device / browser setting), **Light**
+  or **Dark** — chosen on **My Profile → Appearance**. It applies across the whole app including the
+  sign-in screen, is resolved before first paint (no flash), follows the OS while "System" is selected,
+  and is remembered on the sign-in screen for next time. Notification emails are unaffected.
+
 ## [1.6.1] - 2026-09-02
 
 Security hardening release. No breaking changes, no migration. Came out of a full review of the app's

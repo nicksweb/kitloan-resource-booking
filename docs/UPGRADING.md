@@ -10,6 +10,14 @@ checkout that stack was built from.
 
 ## Per-release notes
 
+### → 1.7.0
+
+No breaking changes; standard procedure. One additive migration
+(`2026_01_09_000000_add_theme_to_users_table`) adds `users.theme` (default `system`, working `down()`),
+run by `kitloan:upgrade`. New: a per-account **dark mode** (My Profile → Appearance — System / Light /
+Dark). Nothing to configure; every existing account defaults to `system`. Post-upgrade, glance at the app
+in a dark browser to confirm the theme resolves. `/health` should show `1.7.0`.
+
 ### → 1.6.1
 
 Security hardening; no breaking changes, no migration; standard procedure. Restricts the booking helpdesk

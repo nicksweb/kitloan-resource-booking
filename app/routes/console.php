@@ -24,3 +24,10 @@ Schedule::command('bookings:send-daily-summary')
 Schedule::command('audit:prune')
     ->dailyAt('02:00')
     ->withoutOverlapping();
+
+// Self-gates on the "scheduled backups" setting — a no-op until an admin
+// turns it on (and a passphrase is configured).
+Schedule::command('kitloan:backup')
+    ->dailyAt('02:30')
+    ->withoutOverlapping()
+    ->runInBackground();

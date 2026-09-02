@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Booking\BookingWizard;
 use App\Models\Location;
+use App\Models\Resource;
 use App\Models\ResourcePool;
 use App\Models\SchedulePeriod;
 use App\Models\User;
@@ -117,6 +118,52 @@ class BookingWizardSmartsTest extends TestCase
             ->assertOk()
             ->assertSee('Search rooms…')
             ->assertSee('A1 — Science Lab');
+    }
+
+    public function test_quantity_mode_previews_which_units_will_be_auto_allocated(): void
+    {
+        $pool = ResourcePool::factory()->create(); // individually tracked
+        Resource::factory()->count(3)->create(['resource_pool_id' => $pool->id]);
+        $user = User::factory()->create();
+
+        $component = Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->set('useSpecificSelection', false)
+            ->set('quantityRequested', 2);
+
+        $selected = collect($component->instance()->resourceGrid())->where('selected', true);
+        $this->assertCount(2, $selected, 'exactly the requested number of units should be previewed as selected');
+        $this->assertTrue($selected->every(fn ($e) => $e['available']));
+
+        $component->assertSee('Auto-selecting 2 of 2');
+    }
+
+    public function test_quantity_mode_flags_when_more_are_requested_than_are_available(): void
+    {
+        $pool = ResourcePool::factory()->create();
+        Resource::factory()->count(3)->create(['resource_pool_id' => $pool->id]);
+        $user = User::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->set('useSpecificSelection', false)
+            ->set('quantityRequested', 5)
+            ->assertSee('Auto-selecting 3 of 5');
+    }
+
+    public function test_switching_from_specific_picks_back_to_a_quantity_carries_the_count(): void
+    {
+        $pool = ResourcePool::factory()->create();
+        $resources = Resource::factory()->count(3)->create(['resource_pool_id' => $pool->id]);
+        $user = User::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->set('useSpecificSelection', true)
+            ->call('toggleResource', $resources[0]->id)
+            ->call('toggleResource', $resources[1]->id)
+            ->set('useSpecificSelection', false)
+            ->assertSet('quantityRequested', 2);
     }
 
     public function test_disabled_periods_are_not_offered(): void

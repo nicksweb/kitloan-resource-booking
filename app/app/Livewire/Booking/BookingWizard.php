@@ -238,7 +238,7 @@ class BookingWizard extends Component
         $availability = app(AvailabilityService::class);
         $availableIds = $availability->availableResourceIds($this->pool, $start, $end)->all();
 
-        return Resource::query()
+        $grid = Resource::query()
             ->where('resource_pool_id', $this->pool->id)
             ->whereIn('status', ['available', 'unavailable', 'maintenance'])
             ->orderBy('display_order')->orderBy('name')
@@ -252,6 +252,25 @@ class BookingWizard extends Component
                     'selected' => in_array($resource->id, $this->selectedResourceIds, true),
                 ];
             });
+
+        // In "request a quantity" mode the user can't hand-pick, so preview
+        // which units submission will actually grab — the first N available in
+        // allocation order — and mark those as selected. Without this the grid
+        // keeps showing a stale hand-selection, which still reads as "only 4
+        // chosen" even after the quantity is bumped to 5.
+        if (! $this->useSpecificSelection) {
+            $remaining = max(0, $this->quantityRequested);
+
+            $grid = $grid->map(function (array $entry) use (&$remaining) {
+                $take = $entry['available'] && $remaining > 0;
+                $entry['selected'] = $take;
+                $remaining -= $take ? 1 : 0;
+
+                return $entry;
+            });
+        }
+
+        return $grid;
     }
 
     #[Computed]
@@ -285,6 +304,21 @@ class BookingWizard extends Component
             'windowErrors' => $windowErrors,
             'approvalReasons' => $approvalReasons,
         ];
+    }
+
+    /**
+     * Toggling "pick specific items" ⇄ "request a quantity". Coming back to a
+     * bare number, carry the hand-selected count across so the quantity field
+     * isn't a jarring reset to 1; dropping the computed grid lets it repaint
+     * to match whichever mode we're now in.
+     */
+    public function updatedUseSpecificSelection($value): void
+    {
+        if (! $value && $this->selectedResourceIds !== []) {
+            $this->quantityRequested = max(1, count($this->selectedResourceIds));
+        }
+
+        unset($this->resourceGrid);
     }
 
     public function toggleResource(int $resourceId): void

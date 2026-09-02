@@ -182,10 +182,15 @@
         {{-- Right: resource grid / quantity summary --}}
         <div class="lg:col-span-2">
             @if ($pool->isIndividuallyTracked())
+                @php($gridAvailable = ($this->resourceGrid ?? collect())->where('available', true)->count())
                 <div class="flex items-center justify-between">
                     <h2 class="text-sm font-medium text-gray-700">Available {{ $pool->name }}</h2>
                     @if ($useSpecificSelection)
                         <span class="text-sm text-gray-500">Selected: {{ count($selectedResourceIds) }}</span>
+                    @else
+                        <span class="text-sm {{ $quantityRequested > $gridAvailable ? 'text-amber-600' : 'text-gray-500' }}">
+                            Auto-selecting {{ min(max($quantityRequested, 0), $gridAvailable) }} of {{ $quantityRequested }}
+                        </span>
                     @endif
                 </div>
 
@@ -197,11 +202,11 @@
                                 @disabled(! $useSpecificSelection || ! $entry['available'])
                                 title="{{ $resource->name }} &mdash; {{ ucfirst($resource->status) }}"
                                 class="group relative flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition
-                                    {{ $entry['selected'] ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-600' : ($entry['available'] ? 'border-gray-200 bg-white hover:border-indigo-300 cursor-pointer' : 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed') }}">
+                                    {{ $entry['selected'] ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-600' : ($entry['available'] ? ($useSpecificSelection ? 'border-gray-200 bg-white hover:border-indigo-300 cursor-pointer' : 'border-gray-200 bg-white') : 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed') }}">
                             <x-pool-icon :icon="$pool->icon" class="w-6 h-6 {{ $entry['available'] ? 'text-gray-700' : 'text-gray-300' }}" />
                             <span class="text-xs font-medium text-gray-700">{{ $resource->name }}</span>
                             <x-status-badge :status="$entry['selected'] ? 'available' : ($entry['available'] ? 'available' : $resource->status)" class="text-[10px] px-1.5 py-0">
-                                {{ $entry['selected'] ? 'Selected' : ($entry['available'] ? 'Available' : ucfirst($resource->status)) }}
+                                {{ $entry['selected'] ? ($useSpecificSelection ? 'Selected' : 'Auto-pick') : ($entry['available'] ? 'Available' : ucfirst($resource->status)) }}
                             </x-status-badge>
                         </button>
                     @empty

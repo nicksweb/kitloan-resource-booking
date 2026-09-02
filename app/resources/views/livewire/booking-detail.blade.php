@@ -19,7 +19,11 @@
                     <div><dt class="text-gray-500">Date</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('D j M Y') }}</dd></div>
                     <div><dt class="text-gray-500">Time</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('g:i A') }} &ndash; {{ $booking->end_at->format('g:i A') }}</dd></div>
                     <div><dt class="text-gray-500">Room</dt><dd class="font-medium text-gray-900">{{ $booking->roomLabel() }}</dd></div>
-                    <div><dt class="text-gray-500">Exam Type</dt><dd class="font-medium text-gray-900">{{ $booking->bookingType?->name ?? '—' }}</dd></div>
+                    @if ($booking->resourcePool->isStaffPool())
+                        <div><dt class="text-gray-500">IT Officer</dt><dd class="font-medium text-gray-900">{{ $booking->officers()->pluck('name')->join(', ') ?: 'Any available officer' }}</dd></div>
+                    @else
+                        <div><dt class="text-gray-500">Exam Type</dt><dd class="font-medium text-gray-900">{{ $booking->bookingType?->name ?? '—' }}</dd></div>
+                    @endif
                     <div><dt class="text-gray-500">Booked by</dt><dd class="font-medium text-gray-900">{{ $booking->bookedBy->name }}</dd></div>
                     @if ($booking->createdBy->id !== $booking->bookedBy->id)
                         <div><dt class="text-gray-500">Created by</dt><dd class="font-medium text-gray-900">{{ $booking->createdBy->name }}</dd></div>
@@ -57,10 +61,33 @@
 
                 @if ($booking->notes)
                     <div class="mt-4 border-t border-gray-100 pt-4">
-                        <dt class="text-sm text-gray-500">Notes</dt>
+                        <dt class="text-sm text-gray-500">{{ $booking->resourcePool->isStaffPool() ? 'Issue' : 'Notes' }}</dt>
                         <dd class="mt-1 text-sm text-gray-900">{{ $booking->notes }}</dd>
                     </div>
                 @endif
+
+                <div class="mt-4 border-t border-gray-100 pt-4" x-data="{ editing: false }">
+                    <div class="flex items-center justify-between">
+                        <dt class="text-sm text-gray-500">Helpdesk ticket</dt>
+                        @if ($this->canEditHelpdeskUrl())
+                            <button type="button" x-show="!editing" @click="editing = true" class="text-xs text-indigo-600 hover:underline">{{ $booking->helpdesk_url ? 'Edit' : 'Add link' }}</button>
+                        @endif
+                    </div>
+                    <dd x-show="!editing" class="mt-1 text-sm">
+                        @if ($booking->helpdesk_url)
+                            <a href="{{ $booking->helpdesk_url }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline break-all">{{ $booking->helpdesk_url }}</a>
+                        @else
+                            <span class="text-gray-400">None</span>
+                        @endif
+                    </dd>
+                    @if ($this->canEditHelpdeskUrl())
+                        <div x-show="editing" x-cloak class="mt-1 flex gap-2">
+                            <input type="url" wire:model="helpdeskUrl" placeholder="https://…" class="block w-full rounded-md border-gray-300 text-sm">
+                            <button type="button" wire:click="setHelpdeskUrl" @click="editing = false" class="shrink-0 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white">Save</button>
+                        </div>
+                        @error('helpdeskUrl') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    @endif
+                </div>
 
                 @if ($booking->lifecycle_status === 'cancelled' && $booking->rejection_reason)
                     <div class="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-inset ring-red-600/20">

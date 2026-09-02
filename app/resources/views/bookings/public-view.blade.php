@@ -13,9 +13,16 @@
                 <div class="flex justify-between"><dt class="text-gray-500">Date</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('D j M Y') }}</dd></div>
                 <div class="flex justify-between"><dt class="text-gray-500">Time</dt><dd class="font-medium text-gray-900">{{ $booking->start_at->format('g:i A') }} &ndash; {{ $booking->end_at->format('g:i A') }}</dd></div>
                 <div class="flex justify-between"><dt class="text-gray-500">Room</dt><dd class="font-medium text-gray-900">{{ $booking->roomLabel() }}</dd></div>
-                <div class="flex justify-between"><dt class="text-gray-500">Exam Type</dt><dd class="font-medium text-gray-900">{{ $booking->bookingType?->name ?? '—' }}</dd></div>
-                <div class="flex justify-between"><dt class="text-gray-500">Resources</dt><dd class="font-medium text-gray-900">{{ $booking->items->sum('quantity_requested') }} &times; {{ $booking->resourcePool->name }}</dd></div>
+                @if ($booking->resourcePool->isStaffPool())
+                    <div class="flex justify-between"><dt class="text-gray-500">IT Officer</dt><dd class="font-medium text-gray-900 text-right">{{ $booking->officers()->pluck('name')->join(', ') ?: 'Any available officer' }}</dd></div>
+                @else
+                    <div class="flex justify-between"><dt class="text-gray-500">Exam Type</dt><dd class="font-medium text-gray-900">{{ $booking->bookingType?->name ?? '—' }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-gray-500">Resources</dt><dd class="font-medium text-gray-900">{{ $booking->items->sum('quantity_requested') }} &times; {{ $booking->resourcePool->name }}</dd></div>
+                @endif
                 <div class="flex justify-between"><dt class="text-gray-500">Booked by</dt><dd class="font-medium text-gray-900">{{ $booking->bookedBy->name }}</dd></div>
+                @if ($booking->helpdesk_url)
+                    <div class="flex justify-between gap-4"><dt class="text-gray-500">Helpdesk ticket</dt><dd class="text-right"><a href="{{ $booking->helpdesk_url }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline break-all">{{ $booking->helpdesk_url }}</a></dd></div>
+                @endif
                 @if ($booking->students->isNotEmpty())
                     <div class="flex justify-between"><dt class="text-gray-500">Students</dt><dd class="font-medium text-gray-900 text-right">{{ $booking->students->pluck('student_name')->join(', ') }}</dd></div>
                 @endif

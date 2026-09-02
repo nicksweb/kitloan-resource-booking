@@ -30,13 +30,44 @@ class BookingDetail extends Component
 
     public ?int $reassignUserId = null;
 
+    public string $helpdeskUrl = '';
+
     public function mount(Booking $booking): void
     {
         $this->authorize('view', $booking);
         $this->booking = $booking->load([
-            'items.resourcePool', 'items.allocations.resource.externalAssetLink',
+            'items.resourcePool', 'items.allocations.resource.externalAssetLink', 'items.allocations.resource.user',
             'students', 'location', 'bookingType', 'bookedBy', 'createdBy', 'approvedBy', 'rejectedBy', 'cancelledBy',
         ]);
+        $this->helpdeskUrl = (string) $this->booking->helpdesk_url;
+    }
+
+    /** Owner, IT, or a booked officer may add/edit the helpdesk ticket link. */
+    public function canEditHelpdeskUrl(): bool
+    {
+        $user = auth()->user();
+
+        return $user->id === $this->booking->booked_by_user_id
+            || Gate::allows('operate-bookings')
+            || $this->booking->hasOfficer($user);
+    }
+
+    public function setHelpdeskUrl(AuditLogger $auditLogger): void
+    {
+        abort_unless($this->canEditHelpdeskUrl(), 403);
+        $this->validate(['helpdeskUrl' => ['nullable', 'url', 'max:2000']]);
+
+        $this->booking->update(['helpdesk_url' => trim($this->helpdeskUrl) ?: null]);
+
+        $auditLogger->log(
+            'booking.helpdesk_url_set',
+            auth()->user()->name.' '.($this->booking->helpdesk_url ? 'set' : 'cleared')." the helpdesk link on {$this->booking->reference}",
+            auth()->user(),
+            $this->booking->id,
+        );
+
+        $this->booking->refresh();
+        session()->flash('success', 'Helpdesk link updated.');
     }
 
     public function render()

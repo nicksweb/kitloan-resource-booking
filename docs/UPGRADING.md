@@ -10,6 +10,16 @@ checkout that stack was built from.
 
 ## Per-release notes
 
+### → 1.6.0
+
+No breaking changes, no migration; standard procedure (the `migrate` service still runs
+`kitloan:upgrade`, which re-seeds and re-stamps the version). Re-seeding adds one new setting,
+`show_developer_link` (default on) — the "Built with Kitloan" footer link, switchable at
+Administration → Settings → About this instance, or seedable via `KITLOAN_SHOW_DEVELOPER_LINK`.
+Otherwise cosmetic: the booking wizard previews auto-allocated units, the remaining admin tables gain
+click-to-edit rows, an "IT officer" pool icon, and the Administration tab bar renders at a consistent
+width. Nothing to check post-upgrade beyond the usual `/health` version.
+
 ### → 1.5.1
 
 No breaking changes, no migration; standard procedure (the `migrate` service still runs

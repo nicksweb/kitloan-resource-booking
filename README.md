@@ -485,7 +485,7 @@ in-progress work.
 3. **Pull the target release**:
    ```bash
    git fetch --tags
-   git checkout v1.5.0   # replace with the version you're upgrading to
+   git checkout v1.6.0   # replace with the version you're upgrading to
    ```
 4. **Diff your `.env` against the latest `.env.example`** for any new or renamed variables:
    ```bash

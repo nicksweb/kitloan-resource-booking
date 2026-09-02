@@ -4,6 +4,35 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.6.0] - 2026-09-02
+
+No breaking changes, no migration. `kitloan:upgrade` still re-seeds (adds the `show_developer_link`
+setting on first run) and re-stamps the version.
+
+### Added
+
+- **The booking wizard previews auto-allocated units.** In "request a quantity" mode the resource grid now
+  highlights the first N available units — the same ones submission will actually grab — and a header line
+  reads "Auto-selecting N of M", turning amber when the pool can't cover the request. Previously the grid
+  kept showing a stale hand-selection, so raising the number from 4 to 5 still looked like only 4 were
+  chosen. Switching back from "pick specific items" carries the selected count into the quantity field
+  instead of resetting to 1.
+- **An "IT officer" icon.** A headset/support glyph, selectable in the Resource Pool icon list and applied
+  automatically when a pool's kind is set to "IT staff". It also fronts the `officer` tag in the Users list
+  and the IT-officer section of My Profile.
+- **A "Built with Kitloan" footer link** back to the open-source project, shown by default and switchable
+  under Administration → Settings → About this instance (seed default `KITLOAN_SHOW_DEVELOPER_LINK`).
+
+### Changed
+
+- **Click-to-edit rows on the rest of the admin tables.** Resource Pools, Locations and Periods rows now
+  highlight on hover and open the edit modal on a click anywhere in the row (the per-row buttons still work
+  on their own); audit-log entries tied to a booking became navigable links to that booking. The bookings
+  lists were already clickable rows.
+- **The Administration tab bar is the same width on every page.** Settings and Emails previously constrained
+  the whole page — nav included — to a narrow column, so the tab bar jumped width between tabs. The
+  constraint now sits below the nav.
+
 ## [1.5.1] - 2026-09-02
 
 No breaking changes, no migration. `kitloan:upgrade` still re-seeds and re-stamps the version.

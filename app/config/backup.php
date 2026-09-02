@@ -16,7 +16,7 @@ return [
     | shared `app_storage` volume; point it at a bind-mounted host path (and
     | rsync that offsite) for real durability.
     */
-    'path' => env('KITLOAN_BACKUP_PATH', storage_path('app/backups')),
+    'path' => env('KITLOAN_BACKUP_PATH') ?: storage_path('app/backups'),
 
     /*
     | PBKDF2 parameters. These match `openssl enc -aes-256-cbc -pbkdf2 -iter

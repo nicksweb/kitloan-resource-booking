@@ -10,6 +10,16 @@ checkout that stack was built from.
 
 ## Per-release notes
 
+### → 1.8.0
+
+No breaking changes, no migration; standard procedure. `kitloan:upgrade`'s re-seed adds
+`scheduled_backups_enabled` (off) and `backup_retention_count` (7). New: **encrypted backups**
+(Administration → Settings → Backups) and `php artisan kitloan:backup` / `kitloan:restore`. Nothing to
+configure on upgrade. To use scheduled backups, set a passphrase (`KITLOAN_BACKUP_PASSPHRASE` or the
+Settings field) — **store a copy of it separately**, the archives are unrecoverable without it — then tick
+the nightly toggle. Consider bind-mounting `storage/app/backups` to a host path and copying it offsite.
+`/health` should show `1.8.0`.
+
 ### → 1.7.0
 
 No breaking changes; standard procedure. One additive migration

@@ -4,6 +4,27 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.8.0] - 2026-09-03
+
+No breaking changes, no migration. Two new seeded settings
+(`scheduled_backups_enabled`, `backup_retention_count`) are added by `kitloan:upgrade`'s re-seed.
+
+### Added
+
+- **Encrypted backups.** A single archive of the whole database, the uploaded files and the configuration
+  bundle — AES-256-CBC in OpenSSL's `Salted__` + PBKDF2 container, so a `.klbackup` file can be opened with
+  the `openssl` CLI alone if the app is unavailable.
+  - **On demand:** Administration → Settings → Backups → *Download backup now*.
+  - **Scheduled:** an opt-in nightly (02:30) `kitloan:backup` that writes to `storage/app/backups` and
+    prunes to a retention count. Refuses to enable until a passphrase is set
+    (`KITLOAN_BACKUP_PASSPHRASE`, or a write-only field in Settings, stored encrypted at rest).
+  - **Restore:** `php artisan kitloan:restore <file>` — shows the archive's metadata, confirms, then wipes
+    and reloads every table (`--force` / `--skip-files`). The logical dump reloads tables in foreign-key
+    order, so it is database-portable and needs no superuser rights; Postgres id sequences are
+    fast-forwarded afterwards.
+- Config **export / import** is now covered end-to-end by tests across every section (full round-trip,
+  idempotency, older partial bundles) — no behaviour change, it already worked.
+
 ## [1.7.0] - 2026-09-02
 
 No breaking changes. One additive migration (`2026_01_09_000000_add_theme_to_users_table`) adds

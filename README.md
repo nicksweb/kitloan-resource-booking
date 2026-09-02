@@ -461,17 +461,50 @@ With embedding on, the app also:
 
 ## Backups
 
-Three things need backing up:
+### Built-in encrypted backups (recommended)
+
+Kitloan can produce a single **encrypted archive** of the whole database, the uploaded files and the
+configuration bundle. It's AES-256-CBC in OpenSSL's `Salted__` + PBKDF2 container, so a `.klbackup` file
+can be opened with nothing but the `openssl` CLI if the app itself is unavailable.
+
+1. **Set a passphrase.** Either the `KITLOAN_BACKUP_PASSPHRASE` env var (wins), or
+   Administration → Settings → Backups (stored encrypted at rest). **Keep a copy of it somewhere separate —
+   without it the archives are unrecoverable.**
+2. **On demand:** Administration → Settings → Backups → **Download backup now**.
+3. **Scheduled:** tick *Write an encrypted archive nightly* and set how many to keep. The scheduler writes
+   to `storage/app/backups` on the `app_storage` volume at 02:30 and prunes older archives. Bind-mount that
+   path to the host and copy it offsite for real durability — a backup that only lives on the same volume
+   as the database is not a backup.
+
+You can also run it by hand: `docker compose exec app php artisan kitloan:backup --force`.
+
+**Restore** (destructive — wipes and reloads every table; restore onto the same release the archive was
+taken on):
+
+```bash
+docker compose exec app php artisan kitloan:restore /var/www/html/storage/app/backups/kitloan-backup-XXXX.klbackup
+```
+
+Or open an archive without the app at all:
+
+```bash
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -md sha256 \
+  -in kitloan-backup-XXXX.klbackup -pass pass:"YOUR_PASSPHRASE" | gzip -d > backup.ndjson
+```
+
+### Still back up `.env` separately
+
+`.env` holds `APP_KEY` and the DB / SSO / SMTP secrets. It is **not** in the archive (by design). Keep it
+somewhere safe and separate from the repo (it's git-ignored). The `app_storage` volume beyond
+`storage/app/backups` (logs, framework cache) is disposable.
+
+### Manual alternative (no passphrase needed)
 
 1. **Database** — `docker compose exec db pg_dump -U resource_booking resource_booking | gzip > backup-$(date +%F).sql.gz`
-2. **Uploaded files** (logos, anything on the `public` disk) — the `public_uploads` named volume:
+2. **Uploaded files** — the `public_uploads` named volume:
    `docker run --rm -v resource-booking_public_uploads:/data -v $PWD:/backup alpine tar czf /backup/uploads-$(date +%F).tar.gz -C /data .`
-3. **`.env`** — contains secrets; back it up somewhere separate from the repo (it's git-ignored on purpose).
 
-The `app_storage` volume (logs, framework cache) does *not* need backing up — it's fully disposable.
-
-Restore: recreate the volumes, `gunzip | psql` the database dump back in, untar the uploads volume, then
-`docker compose up -d`.
+Restore: recreate the volumes, `gunzip | psql` the dump back in, untar the uploads volume, `docker compose up -d`.
 
 ## Updating an existing instance
 
@@ -486,7 +519,7 @@ in-progress work.
 3. **Pull the target release**:
    ```bash
    git fetch --tags
-   git checkout v1.7.0   # replace with the version you're upgrading to
+   git checkout v1.8.0   # replace with the version you're upgrading to
    ```
 4. **Diff your `.env` against the latest `.env.example`** for any new or renamed variables:
    ```bash

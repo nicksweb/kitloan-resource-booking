@@ -44,6 +44,6 @@ return [
         // how many archives to keep in the backup directory before the oldest
         // are pruned. The passphrase itself is never a seeded default.
         'scheduled_backups_enabled' => filter_var(env('KITLOAN_SCHEDULED_BACKUPS', false), FILTER_VALIDATE_BOOL),
-        'backup_retention_count' => (int) env('KITLOAN_BACKUP_RETENTION', 7),
+        'backup_retention_count' => (int) (env('KITLOAN_BACKUP_RETENTION') ?: 7),
     ],
 ];

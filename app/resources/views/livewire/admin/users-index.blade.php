@@ -14,18 +14,23 @@
             </tr></thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach ($users as $user)
-                    <tr>
+                    <tr wire:click="edit({{ $user->id }})" class="cursor-pointer transition-colors hover:bg-indigo-50/60">
                         <td class="px-4 py-3 font-medium text-gray-900">{{ $user->name }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ $user->email }}</td>
-                        <td class="px-4 py-3 text-gray-500">{{ $user->roles->first()?->name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-gray-500">
+                            {{ $user->roles->first()?->name ?? '—' }}
+                            @if ($user->bookable_as_officer)
+                                <span class="ml-1 inline-flex items-center rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">officer</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3"><x-status-badge :status="$user->enabled ? 'available' : 'disabled'">{{ $user->enabled ? 'Enabled' : 'Disabled' }}</x-status-badge></td>
                         <td class="px-4 py-3">
                             @if ($user->hasRole('administrator'))
                                 <div class="flex items-center gap-2">
                                     <x-status-badge :status="$user->password ? 'available' : 'disabled'">{{ $user->password ? 'Configured' : 'Not set' }}</x-status-badge>
-                                    <button wire:click="openLocalPasswordForm({{ $user->id }})" class="text-xs text-indigo-600 hover:underline">{{ $user->password ? 'Reset' : 'Set' }}</button>
+                                    <button wire:click.stop="openLocalPasswordForm({{ $user->id }})" class="text-xs text-indigo-600 hover:underline">{{ $user->password ? 'Reset' : 'Set' }}</button>
                                     @if ($user->password)
-                                        <button wire:click="clearLocalPassword({{ $user->id }})" onclick="return confirm('Clear the local-login password for {{ $user->email }}? They will no longer be able to use emergency login until a new one is set.')" class="text-xs text-gray-400 hover:underline">Clear</button>
+                                        <button wire:click.stop="clearLocalPassword({{ $user->id }})" onclick="event.stopPropagation(); return confirm('Clear the local-login password for {{ $user->email }}? They will no longer be able to use emergency login until a new one is set.')" class="text-xs text-gray-400 hover:underline">Clear</button>
                                     @endif
                                 </div>
                             @else
@@ -36,7 +41,7 @@
                             @if ($user->hasTwoFactorEnabled())
                                 <span class="inline-flex items-center gap-2">
                                     <x-status-badge status="available">On</x-status-badge>
-                                    <button wire:click="clearTwoFactor({{ $user->id }})" wire:confirm="Reset 2FA for {{ $user->email }}? They must set it up again at next sign-in." class="text-xs text-gray-400 hover:underline">Reset</button>
+                                    <button wire:click.stop="clearTwoFactor({{ $user->id }})" wire:confirm="Reset 2FA for {{ $user->email }}? They must set it up again at next sign-in." class="text-xs text-gray-400 hover:underline">Reset</button>
                                 </span>
                             @elseif ($user->requiresTwoFactor())
                                 <x-status-badge status="disabled">Required — not set</x-status-badge>
@@ -48,15 +53,15 @@
                         </td>
                         <td class="px-4 py-3 text-gray-500">{{ $user->last_login_at?->diffForHumans() ?? 'Never' }}</td>
                         <td class="px-4 py-3 text-right space-x-2">
-                            <button wire:click="edit({{ $user->id }})" class="text-indigo-600 hover:underline">Edit</button>
-                            <button wire:click="toggleEnabled({{ $user->id }})" class="text-gray-500 hover:underline">{{ $user->enabled ? 'Disable' : 'Enable' }}</button>
+                            <button wire:click.stop="edit({{ $user->id }})" class="text-indigo-600 hover:underline">Edit</button>
+                            <button wire:click.stop="toggleEnabled({{ $user->id }})" class="text-gray-500 hover:underline">{{ $user->enabled ? 'Disable' : 'Enable' }}</button>
                             @if ($user->id !== auth()->id())
-                                <button wire:click="delete({{ $user->id }})" wire:confirm="Delete {{ $user->email }}? Their bookings and audit history are kept; the account can no longer sign in." class="text-red-600 hover:underline">Delete</button>
+                                <button wire:click.stop="delete({{ $user->id }})" wire:confirm="Delete {{ $user->email }}? Their bookings and audit history are kept; the account can no longer sign in." class="text-red-600 hover:underline">Delete</button>
                             @endif
                             @if (! $user->hasRole('administrator') && $user->id !== auth()->id() && $user->enabled)
                                 <form method="POST" action="{{ route('admin.users.impersonate', $user) }}" class="inline" onsubmit="return confirm('Sign in as {{ $user->name }}? You can return to your own account at any time.');">
                                     @csrf
-                                    <button type="submit" class="text-gray-500 hover:underline">Impersonate</button>
+                                    <button type="submit" onclick="event.stopPropagation()" class="text-gray-500 hover:underline">Impersonate</button>
                                 </form>
                             @endif
                         </td>
@@ -76,7 +81,7 @@
                     <div><label class="block text-xs font-medium text-gray-700">Email</label><input type="email" wire:model="email" class="mt-1 block w-full rounded-md border-gray-300 text-sm">@error('email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Role</label>
-                        <select wire:model="role" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                        <select wire:model.live="role" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
                             <option value="user">User</option>
                             <option value="it_operator">IT Operator</option>
                             <option value="administrator">Administrator</option>
@@ -91,6 +96,12 @@
                         <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" wire:model="receivesDailySummary" class="rounded border-gray-300 text-indigo-600"> Receives 7am daily booking summary</label>
                         <p class="mt-0.5 text-xs text-gray-400">Only sent to IT Operators/Administrators on days with bookings. Turn off for e.g. leave.</p>
                     </div>
+                    @if ($role !== 'user')
+                        <div>
+                            <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" wire:model="bookableAsOfficer" class="rounded border-gray-300 text-indigo-600"> Bookable as an IT officer</label>
+                            <p class="mt-0.5 text-xs text-gray-400">Staff can book this person for a time, place and issue (e.g. Teams support). They can also set this themselves on their profile. Cleared automatically if the role drops to User.</p>
+                        </div>
+                    @endif
                 </div>
                 <div class="mt-6 flex justify-end gap-2">
                     <button wire:click="$set('showForm', false)" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300">Cancel</button>

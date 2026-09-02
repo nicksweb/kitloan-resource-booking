@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Livewire\Admin\UsersIndex;
+use App\Models\ResourcePool;
 use App\Models\User;
+use App\Services\Booking\StaffResourceSync;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -90,6 +92,70 @@ class UserManagementTest extends TestCase
         Livewire::test(UsersIndex::class)->call('delete', $admin->id);
 
         $this->assertNotSoftDeleted('users', ['id' => $admin->id]);
+    }
+
+    public function test_an_administrator_can_make_another_user_bookable_as_an_it_officer(): void
+    {
+        $pool = ResourcePool::factory()->create(['kind' => 'staff']);
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+        $officer = User::factory()->create();
+        $officer->assignRole('it_operator');
+
+        $this->actingAs($admin);
+        Livewire::test(UsersIndex::class)
+            ->call('edit', $officer->id)
+            ->set('bookableAsOfficer', true)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($officer->fresh()->bookable_as_officer);
+        $this->assertDatabaseHas('resources', [
+            'resource_pool_id' => $pool->id, 'user_id' => $officer->id, 'status' => 'available',
+        ]);
+        $this->assertDatabaseHas('audit_events', ['event_type' => 'users.officer_availability']);
+    }
+
+    public function test_the_bookable_officer_toggle_has_no_effect_for_a_plain_user_role(): void
+    {
+        ResourcePool::factory()->create(['kind' => 'staff']);
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+        $target = User::factory()->create();
+        $target->assignRole('user');
+
+        $this->actingAs($admin);
+        Livewire::test(UsersIndex::class)
+            ->call('edit', $target->id)
+            ->set('bookableAsOfficer', true) // role stays 'user'
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertFalse($target->fresh()->bookable_as_officer);
+        $this->assertDatabaseMissing('resources', ['user_id' => $target->id]);
+    }
+
+    public function test_demoting_a_bookable_officer_to_plain_user_clears_the_flag_and_disables_their_resources(): void
+    {
+        $pool = ResourcePool::factory()->create(['kind' => 'staff']);
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+        $officer = User::factory()->create(['bookable_as_officer' => true]);
+        $officer->assignRole('it_operator');
+        app(StaffResourceSync::class)->syncUser($officer);
+
+        $this->actingAs($admin);
+        Livewire::test(UsersIndex::class)
+            ->call('edit', $officer->id)
+            ->set('role', 'user')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertFalse($officer->fresh()->bookable_as_officer);
+        $this->assertTrue($officer->fresh()->hasRole('user'));
+        $this->assertDatabaseHas('resources', [
+            'resource_pool_id' => $pool->id, 'user_id' => $officer->id, 'status' => 'disabled',
+        ]);
     }
 
     public function test_a_deleted_user_can_no_longer_authenticate(): void

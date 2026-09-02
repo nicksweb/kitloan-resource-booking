@@ -32,6 +32,8 @@ class UsersIndex extends Component
 
     public bool $receivesDailySummary = true;
 
+    public bool $bookableAsOfficer = false;
+
     public bool $showLocalPasswordForm = false;
 
     public ?int $localPasswordUserId = null;
@@ -57,6 +59,7 @@ class UsersIndex extends Component
         $this->role = 'user';
         $this->enabled = true;
         $this->receivesDailySummary = true;
+        $this->bookableAsOfficer = false;
         $this->showForm = true;
     }
 
@@ -68,10 +71,11 @@ class UsersIndex extends Component
         $this->role = $user->roles->first()?->name ?? 'user';
         $this->enabled = $user->enabled;
         $this->receivesDailySummary = $user->receives_daily_summary;
+        $this->bookableAsOfficer = $user->bookable_as_officer;
         $this->showForm = true;
     }
 
-    public function save(): void
+    public function save(AuditLogger $auditLogger): void
     {
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -93,22 +97,38 @@ class UsersIndex extends Component
             return;
         }
 
+        // A plain "user" is never an IT officer — demoting someone clears the
+        // flag (fail closed). Their existing officer resources are then disabled
+        // by StaffResourceSync below; in-flight bookings keep their allocation.
+        $bookable = $data['role'] !== 'user' && $this->bookableAsOfficer;
+
         $attributes = [
             'name' => $data['name'],
             'email' => $data['email'],
             'enabled' => $this->enabled,
             'receives_daily_summary' => $this->receivesDailySummary,
+            'bookable_as_officer' => $bookable,
         ];
 
         if ($this->editingId) {
             $user = User::findOrFail($this->editingId);
+            $wasBookable = (bool) $user->bookable_as_officer;
             $user->update($attributes);
         } else {
+            $wasBookable = false;
             $user = User::create($attributes);
         }
 
         $user->syncRoles([$data['role']]);
         app(StaffResourceSync::class)->syncUser($user->fresh());
+
+        if ($bookable !== $wasBookable) {
+            $auditLogger->log(
+                'users.officer_availability',
+                auth()->user()->name.' '.($bookable ? 'made' : 'removed').' '.$user->name.' as a bookable IT officer',
+                auth()->user(),
+            );
+        }
 
         $this->showForm = false;
         session()->flash('success', 'User saved.');

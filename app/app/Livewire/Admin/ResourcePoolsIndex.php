@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Booking;
 use App\Models\ResourcePool;
 use App\Services\Audit\AuditLogger;
+use App\Services\Booking\StaffResourceSync;
 use App\Services\Config\ConfigTransferService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -27,6 +28,12 @@ class ResourcePoolsIndex extends Component
     public string $icon = 'laptop';
 
     public string $allocationMode = 'individual';
+
+    /** equipment | staff */
+    public string $kind = 'equipment';
+
+    /** team | assigned_officer — only meaningful for a staff pool */
+    public string $approvalRoute = 'team';
 
     public ?int $quantityTotal = null;
 
@@ -80,6 +87,8 @@ class ResourcePoolsIndex extends Component
         ]);
         $this->icon = 'laptop';
         $this->allocationMode = 'individual';
+        $this->kind = 'equipment';
+        $this->approvalRoute = 'team';
         $this->requiresRoom = true;
         $this->allowsStudent = true;
         $this->requiresStudent = false;
@@ -97,6 +106,8 @@ class ResourcePoolsIndex extends Component
         $this->description = (string) $pool->description;
         $this->icon = $pool->icon;
         $this->allocationMode = $pool->allocation_mode;
+        $this->kind = $pool->kind ?: 'equipment';
+        $this->approvalRoute = $pool->approval_route ?: 'team';
         $this->quantityTotal = $pool->quantity_total;
         $this->minimumLeadTimeMinutes = $pool->minimum_lead_time_minutes;
         $this->preparationBufferMinutes = $pool->preparation_buffer_minutes;
@@ -113,12 +124,14 @@ class ResourcePoolsIndex extends Component
         $this->showForm = true;
     }
 
-    public function save(): void
+    public function save(StaffResourceSync $staffSync): void
     {
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'icon' => ['required', 'string'],
+            'kind' => ['required', 'in:equipment,staff'],
+            'approvalRoute' => ['required', 'in:team,assigned_officer'],
             'allocationMode' => ['required', 'in:individual,quantity'],
             'quantityTotal' => ['nullable', 'integer', 'min:0', 'required_if:allocationMode,quantity'],
             'minimumLeadTimeMinutes' => ['required', 'integer', 'min:0'],
@@ -127,20 +140,25 @@ class ResourcePoolsIndex extends Component
             'bookingReferencePrefix' => ['required', 'string', 'max:8'],
         ]);
 
+        // A staff pool is always individually allocated and never involves students.
+        $isStaff = $data['kind'] === 'staff';
+
         $payload = [
             'name' => $data['name'],
             'description' => $data['description'],
             'icon' => $data['icon'],
-            'allocation_mode' => $data['allocationMode'],
-            'quantity_total' => $data['quantityTotal'],
+            'kind' => $data['kind'],
+            'approval_route' => $data['approvalRoute'],
+            'allocation_mode' => $isStaff ? 'individual' : $data['allocationMode'],
+            'quantity_total' => $isStaff ? null : $data['quantityTotal'],
             'minimum_lead_time_minutes' => $data['minimumLeadTimeMinutes'],
             'preparation_buffer_minutes' => $data['preparationBufferMinutes'],
             'return_buffer_minutes' => $data['returnBufferMinutes'],
             'allow_weekends' => $this->allowWeekends,
             'allow_out_of_hours' => $this->allowOutOfHours,
             'requires_room' => $this->requiresRoom,
-            'allows_student' => $this->allowsStudent,
-            'requires_student' => $this->requiresStudent,
+            'allows_student' => $isStaff ? false : $this->allowsStudent,
+            'requires_student' => $isStaff ? false : $this->requiresStudent,
             'requires_booking_type' => $this->requiresBookingType,
             'auto_approval_enabled' => $this->autoApprovalEnabled,
             'booking_reference_prefix' => $data['bookingReferencePrefix'],
@@ -148,11 +166,18 @@ class ResourcePoolsIndex extends Component
         ];
 
         if ($this->editingId) {
-            ResourcePool::findOrFail($this->editingId)->update($payload);
+            $pool = ResourcePool::findOrFail($this->editingId);
+            // kind is locked after creation.
+            unset($payload['kind'], $payload['allocation_mode']);
+            $pool->update($payload);
         } else {
             $payload['slug'] = Str::slug($data['name']).'-'.Str::random(4);
             $payload['display_order'] = ResourcePool::max('display_order') + 1;
-            ResourcePool::create($payload);
+            $pool = ResourcePool::create($payload);
+        }
+
+        if ($pool->isStaffPool()) {
+            $staffSync->syncPool($pool->fresh());
         }
 
         $this->showForm = false;

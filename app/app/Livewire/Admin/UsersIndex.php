@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Booking\StaffResourceSync;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -107,6 +108,7 @@ class UsersIndex extends Component
         }
 
         $user->syncRoles([$data['role']]);
+        app(StaffResourceSync::class)->syncUser($user->fresh());
 
         $this->showForm = false;
         session()->flash('success', 'User saved.');
@@ -121,6 +123,7 @@ class UsersIndex extends Component
         }
 
         $user->update(['enabled' => ! $user->enabled]);
+        app(StaffResourceSync::class)->syncUser($user->fresh());
     }
 
     /**

@@ -64,17 +64,40 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Allocation Mode</label>
-                            <select wire:model="allocationMode" class="mt-1 block w-full rounded-md border-gray-300 text-sm" {{ $editingId ? 'disabled' : '' }}>
-                                <option value="individual">Individually Tracked</option>
-                                <option value="quantity">Quantity Tracked</option>
+                            <label class="block text-xs font-medium text-gray-700">Pool kind</label>
+                            <select wire:model.live="kind" class="mt-1 block w-full rounded-md border-gray-300 text-sm" {{ $editingId ? 'disabled' : '' }}>
+                                <option value="equipment">Equipment</option>
+                                <option value="staff">IT staff (book an officer)</option>
                             </select>
                         </div>
                     </div>
-                    @if ($allocationMode === 'quantity')
+
+                    @if ($kind === 'staff')
+                        <div class="rounded-md bg-indigo-50 p-3 text-xs text-indigo-900">
+                            The bookable resources here are the IT officers who tick "bookable as an IT officer" on their profile — managed automatically, not added by hand.
+                        </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Total Quantity</label>
-                            <input type="number" min="0" wire:model="quantityTotal" class="mt-1 block w-32 rounded-md border-gray-300 text-sm">
+                            <label class="block text-xs font-medium text-gray-700">Approvals go to</label>
+                            <select wire:model="approvalRoute" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                <option value="team">The IT team address</option>
+                                <option value="assigned_officer">The booked officer</option>
+                            </select>
+                        </div>
+                    @else
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700">Allocation Mode</label>
+                                <select wire:model.live="allocationMode" class="mt-1 block w-full rounded-md border-gray-300 text-sm" {{ $editingId ? 'disabled' : '' }}>
+                                    <option value="individual">Individually Tracked</option>
+                                    <option value="quantity">Quantity Tracked</option>
+                                </select>
+                            </div>
+                            @if ($allocationMode === 'quantity')
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700">Total Quantity</label>
+                                    <input type="number" min="0" wire:model="quantityTotal" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                </div>
+                            @endif
                         </div>
                     @endif
                     <div class="grid grid-cols-3 gap-3">
@@ -102,6 +125,7 @@
                             'requiresStudent' => 'Requires student', 'requiresBookingType' => 'Requires exam type',
                             'autoApprovalEnabled' => 'Auto-approval enabled', 'enabled' => 'Pool enabled',
                         ] as $prop => $label)
+                            @if ($kind === 'staff' && in_array($prop, ['allowsStudent', 'requiresStudent'], true)) @continue @endif
                             <label class="flex items-center gap-2 text-sm text-gray-700">
                                 <input type="checkbox" wire:model="{{ $prop }}" class="rounded border-gray-300 text-indigo-600">
                                 {{ $label }}

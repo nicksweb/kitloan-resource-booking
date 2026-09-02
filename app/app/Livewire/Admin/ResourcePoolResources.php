@@ -199,6 +199,12 @@ class ResourcePoolResources extends Component
     {
         abort_unless($resource->resource_pool_id === $this->resourcePool->id, 404);
 
+        if ($resource->user_id) {
+            session()->flash('error', 'This officer is managed from their profile — they can turn "bookable as an IT officer" off there.');
+
+            return;
+        }
+
         $hasUpcomingAllocation = $resource->allocations()
             ->whereNull('released_at')
             ->whereHas('bookingItem.booking', fn ($q) => $q->where('lifecycle_status', 'active')->where('end_at', '>=', now()))

@@ -74,8 +74,8 @@
                         @endif
                     </div>
                     <dd x-show="!editing" class="mt-1 text-sm">
-                        @if ($booking->helpdesk_url)
-                            <a href="{{ $booking->helpdesk_url }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline break-all">{{ $booking->helpdesk_url }}</a>
+                        @if ($booking->safeHelpdeskUrl())
+                            <a href="{{ $booking->safeHelpdeskUrl() }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline break-all">{{ $booking->safeHelpdeskUrl() }}</a>
                         @else
                             <span class="text-gray-400">None</span>
                         @endif

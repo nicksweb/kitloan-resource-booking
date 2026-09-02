@@ -55,7 +55,7 @@ class BookingDetail extends Component
     public function setHelpdeskUrl(AuditLogger $auditLogger): void
     {
         abort_unless($this->canEditHelpdeskUrl(), 403);
-        $this->validate(['helpdeskUrl' => ['nullable', 'url', 'max:2000']]);
+        $this->validate(['helpdeskUrl' => ['nullable', 'url:http,https', 'max:2000']]);
 
         $this->booking->update(['helpdesk_url' => trim($this->helpdeskUrl) ?: null]);
 

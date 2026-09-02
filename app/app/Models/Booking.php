@@ -115,6 +115,19 @@ class Booking extends Model
     }
 
     /** Human-readable room, honouring the pick-up / TBC choices. */
+    /**
+     * The helpdesk link, but only if it's a plain http(s) URL — a defence in
+     * depth for the two places it's rendered into an `href`, so a legacy row
+     * or a future bypass of the `url:http,https` input rule can't smuggle a
+     * `javascript:` (or other scheme) link onto the page.
+     */
+    public function safeHelpdeskUrl(): ?string
+    {
+        $url = trim((string) $this->helpdesk_url);
+
+        return preg_match('#^https?://#i', $url) ? $url : null;
+    }
+
     public function roomLabel(): string
     {
         return match ($this->room_choice) {

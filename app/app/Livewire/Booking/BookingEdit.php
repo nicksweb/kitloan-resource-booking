@@ -348,7 +348,7 @@ class BookingEdit extends Component
             'locationId' => [$this->pool->requires_room && $this->roomChoice === 'room' ? 'required' : 'nullable', 'exists:locations,id'],
             'bookingTypeId' => [$this->pool->requires_booking_type ? 'required' : 'nullable', 'exists:booking_types,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'helpdeskUrl' => ['nullable', 'url', 'max:2000'],
+            'helpdeskUrl' => ['nullable', 'url:http,https', 'max:2000'],
             'studentNamesRaw' => [$this->pool->requires_student ? 'required' : 'nullable', 'string', 'max:2000'],
             'bookedByUserId' => ['nullable', 'integer', 'exists:users,id'],
         ];

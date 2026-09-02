@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Booking\BookingWizard;
 use App\Livewire\BookingDetail;
 use App\Models\Booking;
 use App\Models\Resource;
@@ -140,5 +141,44 @@ class HelpdeskUrlTest extends TestCase
 
         Livewire::actingAs($owner)->test(BookingDetail::class, ['booking' => $booking])
             ->assertSee('https://help.example.com/T-1');
+    }
+
+    public function test_a_non_http_scheme_is_rejected_by_the_detail_page(): void
+    {
+        $owner = User::factory()->create();
+        $booking = $this->booking($owner);
+
+        Livewire::actingAs($owner)->test(BookingDetail::class, ['booking' => $booking])
+            ->set('helpdeskUrl', 'javascript://%0aalert(document.domain)')
+            ->call('setHelpdeskUrl')
+            ->assertHasErrors('helpdeskUrl');
+
+        $this->assertNull($booking->fresh()->helpdesk_url);
+    }
+
+    public function test_a_non_http_scheme_is_rejected_by_the_wizard(): void
+    {
+        $owner = User::factory()->create();
+        $pool = ResourcePool::factory()->create(['minimum_lead_time_minutes' => 0]);
+        Resource::factory()->create(['resource_pool_id' => $pool->id]);
+
+        Livewire::actingAs($owner)
+            ->test(BookingWizard::class, ['resourcePool' => $pool])
+            ->set('helpdeskUrl', 'javascript:alert(1)')
+            ->call('submit')
+            ->assertHasErrors('helpdeskUrl');
+    }
+
+    public function test_a_legacy_bad_scheme_row_is_not_rendered_as_a_link(): void
+    {
+        $owner = User::factory()->create();
+        $booking = $this->booking($owner);
+        // Simulate a row that predates the scheme validation.
+        $booking->forceFill(['helpdesk_url' => 'javascript:alert(1)'])->save();
+
+        $this->assertNull($booking->fresh()->safeHelpdeskUrl());
+
+        Livewire::actingAs($owner)->test(BookingDetail::class, ['booking' => $booking->fresh()])
+            ->assertDontSeeHtml('href="javascript:alert(1)"');
     }
 }

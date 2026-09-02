@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'oidc_subject', 'enabled', 'receives_daily_summary'])]
+#[Fillable(['name', 'email', 'oidc_subject', 'enabled', 'receives_daily_summary', 'bookable_as_officer'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
@@ -29,6 +29,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'enabled' => 'boolean',
             'receives_daily_summary' => 'boolean',
+            'bookable_as_officer' => 'boolean',
             'first_login_at' => 'datetime',
             'last_login_at' => 'datetime',
             'two_factor_secret' => 'encrypted',
@@ -46,6 +47,12 @@ class User extends Authenticatable
     public function bookingsCreated(): HasMany
     {
         return $this->hasMany(Booking::class, 'created_by_user_id');
+    }
+
+    /** The auto-managed resource rows that stand for this person on staff pools. */
+    public function officerResources(): HasMany
+    {
+        return $this->hasMany(Resource::class);
     }
 
     public function isEnabled(): bool

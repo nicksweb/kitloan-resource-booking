@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
-    'resource_pool_id', 'name', 'asset_number', 'serial',
+    'resource_pool_id', 'user_id', 'name', 'asset_number', 'serial',
     'status', 'source', 'display_order', 'notes',
 ])]
 class Resource extends Model
@@ -23,6 +23,12 @@ class Resource extends Model
     public function resourcePool(): BelongsTo
     {
         return $this->belongsTo(ResourcePool::class);
+    }
+
+    /** The person this resource stands for, on a staff pool. */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function externalAssetLink(): HasOne

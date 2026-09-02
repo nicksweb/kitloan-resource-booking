@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 #[Fillable([
     'reference', 'resource_pool_id', 'location_id', 'room_choice', 'booking_type_id',
-    'booked_by_user_id', 'created_by_user_id', 'start_at', 'end_at', 'notes',
+    'booked_by_user_id', 'created_by_user_id', 'start_at', 'end_at', 'notes', 'helpdesk_url',
     'approval_status', 'allocation_status', 'lifecycle_status', 'auto_approved',
     'conflict_override', 'override_reason',
 ])]
@@ -89,6 +90,28 @@ class Booking extends Model
     public function isUpcoming(): bool
     {
         return $this->start_at->isFuture() && $this->lifecycle_status === 'active';
+    }
+
+    /**
+     * The distinct people currently allocated to this booking — non-empty only
+     * for a staff (IT officer) pool.
+     *
+     * @return Collection<int, User>
+     */
+    public function officers(): Collection
+    {
+        return $this->items
+            ->flatMap->allocations
+            ->whereNull('released_at')
+            ->map(fn ($a) => $a->resource?->user)
+            ->filter()
+            ->unique('id')
+            ->values();
+    }
+
+    public function hasOfficer(User $user): bool
+    {
+        return $this->officers()->contains('id', $user->id);
     }
 
     /** Human-readable room, honouring the pick-up / TBC choices. */

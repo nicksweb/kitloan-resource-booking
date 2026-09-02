@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'name', 'slug', 'description', 'enabled', 'icon', 'display_order',
-    'allocation_mode', 'quantity_total',
+    'allocation_mode', 'kind', 'approval_route', 'quantity_total',
     'minimum_lead_time_minutes', 'preparation_buffer_minutes', 'return_buffer_minutes',
     'allow_weekends', 'allow_out_of_hours',
     'requires_room', 'allows_student', 'requires_student', 'requires_booking_type',
@@ -57,6 +57,12 @@ class ResourcePool extends Model
     public function isQuantityTracked(): bool
     {
         return $this->allocation_mode === 'quantity';
+    }
+
+    /** A pool whose "resources" are people (opted-in IT officers), not equipment. */
+    public function isStaffPool(): bool
+    {
+        return $this->kind === 'staff';
     }
 
     public function scopeEnabled($query)

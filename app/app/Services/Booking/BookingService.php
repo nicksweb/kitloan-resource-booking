@@ -74,6 +74,7 @@ class BookingService
                 'start_at' => $start,
                 'end_at' => $end,
                 'notes' => $data['notes'] ?? null,
+                'helpdesk_url' => $data['helpdesk_url'] ?? null,
                 'approval_status' => 'pending',
                 'allocation_status' => 'unallocated',
                 'lifecycle_status' => 'active',
@@ -237,6 +238,7 @@ class BookingService
                 'start_at' => $start,
                 'end_at' => $end,
                 'notes' => $data['notes'] ?? null,
+                'helpdesk_url' => $data['helpdesk_url'] ?? null,
                 'conflict_override' => $override,
                 'override_reason' => $data['override_reason'] ?? null,
             ] + ($reassignTo ? ['booked_by_user_id' => $reassignTo->id] : []));

@@ -93,8 +93,14 @@
                 @endif
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Notes (optional)</label>
+                    <label class="block text-sm font-medium text-gray-700">{{ $pool->isStaffPool() ? 'Issue / what you need help with' : 'Notes (optional)' }}</label>
                     <textarea wire:model="notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Helpdesk ticket link (optional)</label>
+                    <input type="url" wire:model="helpdeskUrl" placeholder="https://…" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @error('helpdeskUrl') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 @if ($pool->isIndividuallyTracked())

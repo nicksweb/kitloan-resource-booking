@@ -45,6 +45,8 @@ class BookingEdit extends Component
 
     public string $notes = '';
 
+    public string $helpdeskUrl = '';
+
     /** @var array<int> */
     public array $selectedResourceIds = [];
 
@@ -83,6 +85,7 @@ class BookingEdit extends Component
         $this->bookingTypeId = $booking->booking_type_id;
         $this->bookedByUserId = $booking->booked_by_user_id;
         $this->notes = (string) $booking->notes;
+        $this->helpdeskUrl = (string) $booking->helpdesk_url;
         $this->studentNamesRaw = $booking->students->pluck('student_name')->join("\n");
 
         $primaryItem = $booking->items->firstWhere('resource_pool_id', $this->pool->id);
@@ -312,6 +315,7 @@ class BookingEdit extends Component
             'start_at' => $start,
             'end_at' => $end,
             'notes' => $this->notes ?: null,
+            'helpdesk_url' => trim($this->helpdeskUrl) ?: null,
             'students' => $students,
             'items' => $items,
         ];
@@ -344,6 +348,7 @@ class BookingEdit extends Component
             'locationId' => [$this->pool->requires_room && $this->roomChoice === 'room' ? 'required' : 'nullable', 'exists:locations,id'],
             'bookingTypeId' => [$this->pool->requires_booking_type ? 'required' : 'nullable', 'exists:booking_types,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'helpdeskUrl' => ['nullable', 'url', 'max:2000'],
             'studentNamesRaw' => [$this->pool->requires_student ? 'required' : 'nullable', 'string', 'max:2000'],
             'bookedByUserId' => ['nullable', 'integer', 'exists:users,id'],
         ];

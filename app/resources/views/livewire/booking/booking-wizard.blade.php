@@ -88,21 +88,27 @@
                 @endif
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Notes (optional)</label>
+                    <label class="block text-sm font-medium text-gray-700">{{ $pool->isStaffPool() ? 'Issue / what you need help with' : 'Notes (optional)' }}</label>
                     <textarea wire:model="notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Helpdesk ticket link (optional)</label>
+                    <input type="url" wire:model="helpdeskUrl" placeholder="https://…" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @error('helpdeskUrl') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 @if ($pool->isIndividuallyTracked())
                     <div>
-                        <span class="block text-sm font-medium text-gray-700">How many do you need?</span>
+                        <span class="block text-sm font-medium text-gray-700">{{ $pool->isStaffPool() ? 'Which IT officer?' : 'How many do you need?' }}</span>
                         <div class="mt-1 flex rounded-md shadow-sm">
                             <button type="button" wire:click="$set('useSpecificSelection', false)"
                                     class="flex-1 rounded-l-md border px-3 py-2 text-sm font-medium {{ ! $useSpecificSelection ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300' }}">
-                                Request a quantity
+                                {{ $pool->isStaffPool() ? 'Any available officer' : 'Request a quantity' }}
                             </button>
                             <button type="button" wire:click="$set('useSpecificSelection', true)"
                                     class="flex-1 rounded-r-md border-y border-r px-3 py-2 text-sm font-medium {{ $useSpecificSelection ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300' }}">
-                                Pick specific items
+                                {{ $pool->isStaffPool() ? 'A specific officer' : 'Pick specific items' }}
                             </button>
                         </div>
                     </div>

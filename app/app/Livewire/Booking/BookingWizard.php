@@ -44,6 +44,8 @@ class BookingWizard extends Component
 
     public string $notes = '';
 
+    public string $helpdeskUrl = '';
+
     /** @var array<int> */
     public array $selectedResourceIds = [];
 
@@ -363,6 +365,7 @@ class BookingWizard extends Component
                 'start_at' => $start,
                 'end_at' => $end,
                 'notes' => $this->notes ?: null,
+                'helpdesk_url' => trim($this->helpdeskUrl) ?: null,
                 'students' => $students,
                 'items' => $items,
             ], $bookedBy, $actor);
@@ -388,6 +391,7 @@ class BookingWizard extends Component
             'locationId' => [$this->pool->requires_room && $this->roomChoice === 'room' ? 'required' : 'nullable', 'exists:locations,id'],
             'bookingTypeId' => [$this->pool->requires_booking_type ? 'required' : 'nullable', 'exists:booking_types,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'helpdeskUrl' => ['nullable', 'url', 'max:2000'],
             'studentNamesRaw' => [$this->pool->requires_student ? 'required' : 'nullable', 'string', 'max:2000'],
             'bookedByUserId' => ['nullable', 'integer', 'exists:users,id'],
         ];

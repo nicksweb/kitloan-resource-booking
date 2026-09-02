@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin;
 
 use App\Mail\TestEmail;
+use App\Services\Audit\AuditLogger;
+use App\Services\Backup\BackupService;
 use App\Services\Config\ConfigTransferService;
 use App\Settings\SettingsRepository;
 use Illuminate\Support\Facades\Mail;
@@ -54,6 +56,13 @@ class SettingsIndex extends Component
 
     public bool $showDeveloperLink = true;
 
+    public bool $scheduledBackupsEnabled = false;
+
+    public int $backupRetentionCount = 7;
+
+    /** Write-only: blank on save leaves the stored passphrase unchanged. */
+    public string $backupPassphrase = '';
+
     public string $codeVersion = '';
 
     public ?string $installedVersion = null;
@@ -88,13 +97,40 @@ class SettingsIndex extends Component
         $this->embeddingAllowedOrigins = (string) $settings->get('embedding_allowed_origins', '');
         $this->auditRetentionMonths = (int) $settings->get('audit_retention_months', 0);
         $this->showDeveloperLink = (bool) $settings->get('show_developer_link', true);
+        $this->scheduledBackupsEnabled = (bool) $settings->get('scheduled_backups_enabled', false);
+        $this->backupRetentionCount = (int) $settings->get('backup_retention_count', 7);
         $this->codeVersion = (string) config('version.app');
         $this->installedVersion = $settings->get(config('version.stored_version_key'));
     }
 
     public function render()
     {
-        return view('livewire.admin.settings-index');
+        $backups = app(BackupService::class);
+
+        return view('livewire.admin.settings-index', [
+            'backupPassphraseSource' => $backups->passphraseSource(),
+            'backupArchives' => $backups->listArchives(),
+            'backupDir' => (string) config('backup.path'),
+        ]);
+    }
+
+    public function downloadBackup(BackupService $backups, AuditLogger $auditLogger)
+    {
+        try {
+            $bytes = $backups->createArchive();
+        } catch (\Throwable $e) {
+            $this->addError('backupPassphrase', $e->getMessage());
+
+            return null;
+        }
+
+        $auditLogger->log('backup.downloaded', auth()->user()->name.' downloaded a backup archive', auth()->user());
+
+        return response()->streamDownload(
+            fn () => print ($bytes),
+            'kitloan-backup-'.now()->format('Y-m-d-His').'.'.BackupService::EXTENSION,
+            ['Content-Type' => 'application/octet-stream'],
+        );
     }
 
     /**
@@ -133,7 +169,24 @@ class SettingsIndex extends Component
             // login page). Raster only.
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
             'auditRetentionMonths' => ['required', 'integer', 'min:0', 'max:120'],
+            'backupRetentionCount' => ['required', 'integer', 'min:1', 'max:365'],
+            'backupPassphrase' => ['nullable', 'string', 'min:8', 'max:255'],
         ]);
+
+        // Write-only: a non-blank value replaces the stored passphrase; blank
+        // leaves whatever is there. Do this before the scheduled-backups guard
+        // so both can be set in one save.
+        $backups = app(BackupService::class);
+        if (trim((string) $this->backupPassphrase) !== '') {
+            $backups->storePassphrase($this->backupPassphrase);
+            $this->backupPassphrase = '';
+        }
+
+        if ($this->scheduledBackupsEnabled && $backups->passphrase() === null) {
+            $this->addError('scheduledBackupsEnabled', 'Set a backup passphrase first (below, or the KITLOAN_BACKUP_PASSPHRASE environment variable).');
+
+            return;
+        }
 
         if ($this->logo) {
             // store() generates a random filename — never trust/use the
@@ -165,6 +218,8 @@ class SettingsIndex extends Component
         $settings->set('embedding_allowed_origins', trim($this->normaliseOrigins($this->embeddingAllowedOrigins)));
         $settings->set('audit_retention_months', $data['auditRetentionMonths'], 'integer');
         $settings->set('show_developer_link', $this->showDeveloperLink, 'boolean');
+        $settings->set('scheduled_backups_enabled', $this->scheduledBackupsEnabled, 'boolean');
+        $settings->set('backup_retention_count', $data['backupRetentionCount'], 'integer');
 
         session()->flash('success', 'Settings saved.');
     }

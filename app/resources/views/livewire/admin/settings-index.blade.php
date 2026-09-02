@@ -146,6 +146,65 @@
             </div>
         </div>
 
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 class="text-sm font-semibold text-gray-900">Backups</h2>
+            <p class="mt-1 text-xs text-gray-500">
+                An encrypted archive of the whole database, the uploaded files and the configuration bundle
+                (AES-256, openssl-compatible). Restore is command-line only &mdash;
+                <code>php artisan kitloan:restore &lt;file&gt;</code>.
+            </p>
+
+            <div class="mt-3 space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700">Backup passphrase</label>
+                    @if ($backupPassphraseSource === 'environment')
+                        <p class="mt-1 text-xs text-emerald-700">Configured via the <code>KITLOAN_BACKUP_PASSPHRASE</code> environment variable (this wins over the field below).</p>
+                    @else
+                        <input type="password" wire:model="backupPassphrase" autocomplete="new-password"
+                               placeholder="{{ $backupPassphraseSource === 'settings' ? 'Configured — leave blank to keep it' : 'Not set — enter a passphrase' }}"
+                               class="mt-1 block w-full max-w-sm rounded-md border-gray-300 text-sm">
+                        <p class="mt-1 text-xs text-gray-400">Stored encrypted. You need this exact string to restore &mdash; keep a copy somewhere safe and separate. Min. 8 characters.</p>
+                    @endif
+                    @error('backupPassphrase')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <button type="button" wire:click="downloadBackup" wire:loading.attr="disabled" wire:target="downloadBackup"
+                            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-60">
+                        <span wire:loading.remove wire:target="downloadBackup">Download backup now</span>
+                        <span wire:loading wire:target="downloadBackup">Preparing&hellip;</span>
+                    </button>
+                </div>
+
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" wire:model="scheduledBackupsEnabled" class="rounded border-gray-300 text-indigo-600">
+                    Write an encrypted archive nightly (02:30)
+                </label>
+                @error('scheduledBackupsEnabled')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-700">Keep the most recent</label>
+                    <div class="mt-1 flex items-center gap-2">
+                        <input type="number" min="1" max="365" wire:model="backupRetentionCount" class="block w-20 rounded-md border-gray-300 text-sm">
+                        <span class="text-xs text-gray-500">archives &mdash; older ones are pruned</span>
+                    </div>
+                    @error('backupRetentionCount')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                    <p class="mt-1 text-xs text-gray-400">Written to <code class="break-all">{{ $backupDir }}</code> (on the shared storage volume). Bind-mount that path and copy it offsite for real durability.</p>
+                </div>
+
+                @if ($backupArchives)
+                    <div class="rounded-md bg-gray-50 p-3 text-xs">
+                        <p class="font-medium text-gray-700">{{ count($backupArchives) }} archive(s) on disk</p>
+                        <ul class="mt-1 space-y-0.5 text-gray-500">
+                            @foreach (array_slice($backupArchives, 0, 5) as $a)
+                                <li>{{ $a['name'] }} &middot; {{ number_format($a['size'] / 1024, 1) }} KB &middot; {{ \Illuminate\Support\Carbon::createFromTimestamp($a['modified'])->diffForHumans() }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         <button wire:click="save" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Save Settings</button>
 
         <div class="rounded-xl border border-gray-200 bg-white p-5">

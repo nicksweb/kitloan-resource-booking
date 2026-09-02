@@ -38,5 +38,12 @@ return [
         // daily scheduler. 0 = keep forever. Editable under
         // Administration -> Settings -> Housekeeping.
         'audit_retention_months' => (int) env('BOOKING_AUDIT_RETENTION_MONTHS', 0),
+
+        // Nightly encrypted database backups (Administration -> Settings ->
+        // Backups). Off until a backup passphrase is configured. Retention is
+        // how many archives to keep in the backup directory before the oldest
+        // are pruned. The passphrase itself is never a seeded default.
+        'scheduled_backups_enabled' => filter_var(env('KITLOAN_SCHEDULED_BACKUPS', false), FILTER_VALIDATE_BOOL),
+        'backup_retention_count' => (int) env('KITLOAN_BACKUP_RETENTION', 7),
     ],
 ];

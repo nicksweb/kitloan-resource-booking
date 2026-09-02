@@ -1,5 +1,6 @@
-<div class="max-w-3xl">
+<div>
     <x-admin.nav />
+    <div class="max-w-3xl">
     <h1 class="text-2xl font-semibold tracking-tight text-gray-900">Email Templates</h1>
     <p class="mt-1 text-sm text-gray-500">
         Edit the subject line and opening text of each notification email. The booking details table and the
@@ -60,5 +61,6 @@
                 @endif
             </div>
         @endforeach
+    </div>
     </div>
 </div>

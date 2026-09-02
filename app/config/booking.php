@@ -21,6 +21,11 @@ return [
         'helpdesk_reply_to_address' => env('HELPDESK_REPLY_TO_ADDRESS'),
         'admin_seed_emails' => env('ADMIN_SEED_EMAILS', ''),
 
+        // Show a small "Built with Kitloan — source on GitHub" link in the
+        // page footer. Purely cosmetic attribution; toggle it under
+        // Administration -> Settings -> About this instance.
+        'show_developer_link' => filter_var(env('KITLOAN_SHOW_DEVELOPER_LINK', true), FILTER_VALIDATE_BOOL),
+
         // Iframe embedding. Off by default: the app sends
         // `X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'` and can only
         // be framed by itself. Turn it on and list the parent origins (one per

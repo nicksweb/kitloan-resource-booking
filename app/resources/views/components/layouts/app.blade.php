@@ -100,6 +100,18 @@
     <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {{ $slot }}
     </main>
+
+    @unless (session('embedded'))
+        <footer class="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 pt-4 text-xs text-gray-400">
+                <span>{{ config('app.name') }} &middot; Kitloan v{{ config('version.app') }}</span>
+                @if (app(\App\Settings\SettingsRepository::class)->get('show_developer_link', true))
+                    <a href="https://github.com/nicksweb/kitloan-resource-booking" target="_blank" rel="noopener"
+                       class="hover:text-gray-600 hover:underline">Built with Kitloan &mdash; source &amp; docs on GitHub</a>
+                @endif
+            </div>
+        </footer>
+    @endunless
 </div>
 @livewireScripts
 </body>

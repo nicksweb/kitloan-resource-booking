@@ -52,6 +52,8 @@ class SettingsIndex extends Component
 
     public int $auditRetentionMonths;
 
+    public bool $showDeveloperLink = true;
+
     public string $codeVersion = '';
 
     public ?string $installedVersion = null;
@@ -85,6 +87,7 @@ class SettingsIndex extends Component
         $this->embeddingEnabled = (bool) $settings->get('embedding_enabled', false);
         $this->embeddingAllowedOrigins = (string) $settings->get('embedding_allowed_origins', '');
         $this->auditRetentionMonths = (int) $settings->get('audit_retention_months', 0);
+        $this->showDeveloperLink = (bool) $settings->get('show_developer_link', true);
         $this->codeVersion = (string) config('version.app');
         $this->installedVersion = $settings->get(config('version.stored_version_key'));
     }
@@ -158,6 +161,7 @@ class SettingsIndex extends Component
         $settings->set('embedding_enabled', $this->embeddingEnabled, 'boolean');
         $settings->set('embedding_allowed_origins', trim($this->normaliseOrigins($this->embeddingAllowedOrigins)));
         $settings->set('audit_retention_months', $data['auditRetentionMonths'], 'integer');
+        $settings->set('show_developer_link', $this->showDeveloperLink, 'boolean');
 
         session()->flash('success', 'Settings saved.');
     }

@@ -10,6 +10,19 @@ checkout that stack was built from.
 
 ## Per-release notes
 
+### → 1.5.0
+
+No breaking changes; standard procedure. One additive migration
+(`2026_01_08_000000_staff_bookings`) adds `resources.user_id`, `resource_pools.kind` /
+`resource_pools.approval_route`, `bookings.helpdesk_url` and `users.bookable_as_officer` — all
+nullable / defaulted, each with a working `down()`. `kitloan:upgrade` runs it and re-seeds the message
+templates, so the new `booking.officer_assigned` / `booking.officer_updated` email copy is populated on
+upgrade. New capability: a resource pool can be **kind "IT staff"** (its bookable units are people); IT
+officers opt in from the new **My Profile** page (`/profile`), and each staff pool routes approvals to the
+IT team or to the assigned officer. Bookings gain an optional **helpdesk ticket URL**. After upgrading,
+glance at **Administration → Resource Pools** (create an IT-staff pool if you want the feature) and point
+IT officers at **My Profile**.
+
 ### → 1.3.0
 
 No breaking changes; standard procedure. New this release: one additive table (`message_templates`), a new

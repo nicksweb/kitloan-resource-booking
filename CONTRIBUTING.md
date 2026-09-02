@@ -5,6 +5,72 @@ change comes from a collaborator or an AI pairing session — the goal is to kee
 upgradeable without surprises, per the guarantees in
 [README.md § How releases stay upgrade-safe](README.md#how-releases-stay-upgrade-safe).
 
+## Release workflow (end to end)
+
+This is the outline every Kitloan release has followed — from a request to both instances running the new
+tag. Each step links to the detail further down; the numbered shape is the part worth reusing verbatim.
+
+1. **Pin down the change.** Turn a loose request into a concrete scope: what's in, what's explicitly out,
+   which existing flows it touches. Settle the UX and data-model choices up front (opt-in mechanism, where a
+   setting lives, who may perform the action) rather than guessing mid-implementation.
+2. **Decide the version.** Patch / minor / major per [Versioning and releasing](#versioning-and-releasing).
+   Name the branch after it if you need one (`feature/v1.5.0`); [most additive work goes straight on
+   `main`](#branching).
+3. **Implement in reviewable chunks.** One logical change per commit (data model + migration; admin screens;
+   the booking flow; notifications; docs), so the history reads as a sequence of decisions rather than one
+   40-file dump. Write or extend the feature tests in the *same* chunk as the code they cover — never as a
+   trailing "tests" phase.
+4. **One additive migration per release**, each column/table with a working `down()`. Verify it both ways on
+   a throwaway DB before committing:
+   ```bash
+   docker run --rm -v "$(pwd)/app:/var/www/html" -w /var/www/html --entrypoint sh \
+     resource-booking-app:latest -c '
+       export DB_CONNECTION=sqlite DB_DATABASE=/tmp/t.sqlite; : > /tmp/t.sqlite
+       php artisan migrate --force \
+         && php artisan migrate:rollback --step=1 --force \
+         && php artisan migrate --force'
+   ```
+   Destructive changes split across two releases — see [Schema changes](#schema-changes).
+5. **Lint, and keep the diff yours.** `vendor/bin/pint app/ tests/ database/ config/ routes/`. Pint also
+   reformats pre-existing files your change never touched — `git checkout --` those so the release diff is
+   only the feature. `pint --test` afterwards should report nothing but files you deliberately left alone.
+6. **Full suite, green, in a container** — the [whole suite](#pre-deploy-checklist) against the real app
+   code, not an editor's syntax check.
+7. **Changelog + version, before tagging.** Add the `## [X.Y.Z]` section to [CHANGELOG.md](CHANGELOG.md)
+   (Added / Changed / Fixed / Breaking, plus the one-line migration summary). Bump `VERSION` and
+   `app/VERSION` (kept identical). Update [README.md](README.md) for any new user-facing surface (a page,
+   template token, template key, setting). Add a `### → X.Y.Z` note to [docs/UPGRADING.md](docs/UPGRADING.md).
+8. **Land it.** Commit the docs/version chunk. If you branched, `git merge --ff-only` to `main` — no merge
+   commit, the branch history *is* the release. Then:
+   ```bash
+   git tag -a vX.Y.Z -m "vX.Y.Z — <one-line summary>"
+   git push origin main && git push origin vX.Y.Z
+   ```
+   AI pairing sessions end every commit message with the agreed `Co-Authored-By:` trailer.
+9. **Publish the GitHub Release** — `scripts/release.sh vX.Y.Z` (see
+   [Versioning and releasing](#versioning-and-releasing)). If you're in a session that can't run it, hand
+   the exact command to someone who can; the tag is already pushed, so this never blocks the deploy.
+10. **Deploy this instance.** On the host, from the compose checkout the stack was built from:
+    ```bash
+    # a. Back up the database FIRST — migrations are one-directional.
+    docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+      | gzip > backups/pre-X.Y.Z-$(date +%Y-%m-%d-%H%M).sql.gz
+    # b. Build, upgrade, restart.
+    docker compose build app webserver
+    docker compose run --rm migrate        # php artisan kitloan:upgrade
+    docker compose up -d
+    # c. Verify.
+    curl -s https://<host>/health          # "version":"X.Y.Z", every check "healthy"
+    ```
+    Then exercise the actual changed feature in a browser — passing tests don't prove the Livewire/Alpine
+    path works end to end. Full operator detail and rollback live in [docs/UPGRADING.md](docs/UPGRADING.md).
+11. **Deploy the other instance.** The second deployment is moved forward by fetching and hard-resetting to
+    the pushed ref, not by editing a working checkout:
+    ```bash
+    git fetch origin --prune --tags --force && git reset --hard origin/main
+    ```
+    then the same build / `run --rm migrate` / `up -d` / health-check as step 10 — its own DB backup first.
+
 ## Branching
 
 Work straight on `main` for anything additive and reversible — most features and bug fixes fall here, and

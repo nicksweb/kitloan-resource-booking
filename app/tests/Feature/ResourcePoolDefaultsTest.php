@@ -25,4 +25,20 @@ class ResourcePoolDefaultsTest extends TestCase
             ->assertSet('preparationBufferMinutes', 15)
             ->assertSet('returnBufferMinutes', 15);
     }
+
+    public function test_choosing_the_it_staff_kind_swaps_in_the_officer_icon(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+
+        Livewire::actingAs($admin)
+            ->test(ResourcePoolsIndex::class)
+            ->call('create')
+            ->assertSet('icon', 'laptop')
+            ->set('kind', 'staff')
+            ->assertSet('icon', 'it-officer')
+            ->set('kind', 'equipment')
+            ->assertSet('icon', 'laptop');
+    }
 }

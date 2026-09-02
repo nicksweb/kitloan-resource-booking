@@ -22,7 +22,7 @@
 
         @if ($canBeOfficer)
             <div class="rounded-xl border border-gray-200 bg-white p-5">
-                <h2 class="text-sm font-semibold text-gray-900">IT officer bookings</h2>
+                <h2 class="flex items-center gap-1.5 text-sm font-semibold text-gray-900"><x-pool-icon icon="it-officer" class="h-4 w-4 text-indigo-600" /> IT officer bookings</h2>
                 <label class="mt-3 flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" wire:model="bookableAsOfficer" class="rounded border-gray-300 text-indigo-600">
                     Make me bookable as an IT officer

@@ -99,6 +99,21 @@ class ResourcePoolsIndex extends Component
         $this->showForm = true;
     }
 
+    /**
+     * Picking "IT staff" as the kind swaps the default equipment icon for the
+     * officer one so the pool reads right on the home page and wizard without
+     * a second trip to the icon select — and swaps it back if they change
+     * their mind before saving. A hand-picked non-default icon is left alone.
+     */
+    public function updatedKind(string $value): void
+    {
+        if ($value === 'staff' && $this->icon === 'laptop') {
+            $this->icon = 'it-officer';
+        } elseif ($value === 'equipment' && $this->icon === 'it-officer') {
+            $this->icon = 'laptop';
+        }
+    }
+
     public function edit(ResourcePool $pool): void
     {
         $this->editingId = $pool->id;

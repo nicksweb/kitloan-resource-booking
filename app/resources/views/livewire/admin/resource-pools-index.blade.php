@@ -61,6 +61,7 @@
                                 <option value="monitor">Monitor</option>
                                 <option value="camera">Camera</option>
                                 <option value="device">Device</option>
+                                <option value="it-officer">IT officer</option>
                             </select>
                         </div>
                         <div>

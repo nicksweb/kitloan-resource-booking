@@ -20,7 +20,7 @@
                         <td class="px-4 py-3 text-gray-500">
                             {{ $user->roles->first()?->name ?? '—' }}
                             @if ($user->bookable_as_officer)
-                                <span class="ml-1 inline-flex items-center rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">officer</span>
+                                <span class="ml-1 inline-flex items-center gap-0.5 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700"><x-pool-icon icon="it-officer" class="h-3 w-3" /> officer</span>
                             @endif
                         </td>
                         <td class="px-4 py-3"><x-status-badge :status="$user->enabled ? 'available' : 'disabled'">{{ $user->enabled ? 'Enabled' : 'Disabled' }}</x-status-badge></td>

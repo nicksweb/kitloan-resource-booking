@@ -16,21 +16,21 @@
             </tr></thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach ($pools as $pool)
-                    <tr>
+                    <tr wire:click="edit({{ $pool->id }})" class="cursor-pointer transition-colors hover:bg-indigo-50/60">
                         <td class="px-4 py-3 font-medium text-gray-900">{{ $pool->name }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ ucfirst($pool->allocation_mode) }}</td>
                         <td class="px-4 py-3 text-gray-500">
                             @if ($pool->allocation_mode === 'individual')
-                                <a href="{{ route('admin.resource-pools.resources', $pool) }}" class="text-indigo-600 hover:underline">{{ $pool->resources_count }} items</a>
+                                <a href="{{ route('admin.resource-pools.resources', $pool) }}" wire:navigate @click.stop class="text-indigo-600 hover:underline">{{ $pool->resources_count }} items</a>
                             @else
                                 {{ $pool->quantity_total }} total
                             @endif
                         </td>
                         <td class="px-4 py-3"><x-status-badge :status="$pool->enabled ? 'available' : 'disabled'">{{ $pool->enabled ? 'Enabled' : 'Disabled' }}</x-status-badge></td>
                         <td class="px-4 py-3 text-right space-x-2">
-                            <button wire:click="edit({{ $pool->id }})" class="text-indigo-600 hover:underline">Edit</button>
-                            <button wire:click="toggleEnabled({{ $pool->id }})" class="text-gray-500 hover:underline">{{ $pool->enabled ? 'Disable' : 'Enable' }}</button>
-                            <button wire:click="delete({{ $pool->id }})" wire:confirm="Delete &quot;{{ $pool->name }}&quot;? Existing bookings are unaffected; it just stops appearing for new ones. This is refused while it still has upcoming bookings." class="text-red-600 hover:underline">Delete</button>
+                            <button wire:click.stop="edit({{ $pool->id }})" class="text-indigo-600 hover:underline">Edit</button>
+                            <button wire:click.stop="toggleEnabled({{ $pool->id }})" class="text-gray-500 hover:underline">{{ $pool->enabled ? 'Disable' : 'Enable' }}</button>
+                            <button wire:click.stop="delete({{ $pool->id }})" wire:confirm="Delete &quot;{{ $pool->name }}&quot;? Existing bookings are unaffected; it just stops appearing for new ones. This is refused while it still has upcoming bookings." class="text-red-600 hover:underline">Delete</button>
                         </td>
                     </tr>
                 @endforeach

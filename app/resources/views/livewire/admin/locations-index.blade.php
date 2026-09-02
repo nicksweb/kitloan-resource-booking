@@ -17,15 +17,15 @@
             </tr></thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach ($locations as $location)
-                    <tr>
+                    <tr wire:click="edit({{ $location->id }})" class="cursor-pointer transition-colors hover:bg-indigo-50/60">
                         <td class="px-4 py-3 font-medium text-gray-900">{{ $location->code }}</td>
                         <td class="px-4 py-3 text-gray-700">{{ $location->name }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ $location->campus }}</td>
                         <td class="px-4 py-3"><x-status-badge :status="$location->enabled ? 'available' : 'disabled'">{{ $location->enabled ? 'Enabled' : 'Disabled' }}</x-status-badge></td>
                         <td class="px-4 py-3 text-right space-x-2">
-                            <button wire:click="edit({{ $location->id }})" class="text-indigo-600 hover:underline">Edit</button>
-                            <button wire:click="toggleEnabled({{ $location->id }})" class="text-gray-500 hover:underline">{{ $location->enabled ? 'Disable' : 'Enable' }}</button>
-                            <button wire:click="delete({{ $location->id }})" wire:confirm="Delete location {{ $location->code }}? Existing bookings keep their history; it just stops appearing in the room picker." class="text-red-600 hover:underline">Delete</button>
+                            <button wire:click.stop="edit({{ $location->id }})" class="text-indigo-600 hover:underline">Edit</button>
+                            <button wire:click.stop="toggleEnabled({{ $location->id }})" class="text-gray-500 hover:underline">{{ $location->enabled ? 'Disable' : 'Enable' }}</button>
+                            <button wire:click.stop="delete({{ $location->id }})" wire:confirm="Delete location {{ $location->code }}? Existing bookings keep their history; it just stops appearing in the room picker." class="text-red-600 hover:underline">Delete</button>
                         </td>
                     </tr>
                 @endforeach

@@ -22,14 +22,14 @@
                         </tr></thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach ($groupPeriods as $period)
-                                <tr>
+                                <tr wire:click="edit({{ $period->id }})" class="cursor-pointer transition-colors hover:bg-indigo-50/60">
                                     <td class="px-4 py-3 font-medium text-gray-900">{{ $period->name }}</td>
                                     <td class="px-4 py-3 text-gray-500">{{ $period->start_time->format('g:i A') }} &ndash; {{ $period->end_time->format('g:i A') }}</td>
                                     <td class="px-4 py-3"><x-status-badge :status="$period->enabled ? 'available' : 'disabled'">{{ $period->enabled ? 'Enabled' : 'Disabled' }}</x-status-badge></td>
                                     <td class="px-4 py-3 text-right space-x-2">
-                                        <button wire:click="edit({{ $period->id }})" class="text-indigo-600 hover:underline">Edit</button>
-                                        <button wire:click="toggleEnabled({{ $period->id }})" class="text-gray-500 hover:underline">{{ $period->enabled ? 'Disable' : 'Enable' }}</button>
-                                        <button wire:click="delete({{ $period->id }})" wire:confirm="Remove this period?" class="text-red-500 hover:underline">Delete</button>
+                                        <button wire:click.stop="edit({{ $period->id }})" class="text-indigo-600 hover:underline">Edit</button>
+                                        <button wire:click.stop="toggleEnabled({{ $period->id }})" class="text-gray-500 hover:underline">{{ $period->enabled ? 'Disable' : 'Enable' }}</button>
+                                        <button wire:click.stop="delete({{ $period->id }})" wire:confirm="Remove this period?" class="text-red-500 hover:underline">Delete</button>
                                     </td>
                                 </tr>
                             @endforeach

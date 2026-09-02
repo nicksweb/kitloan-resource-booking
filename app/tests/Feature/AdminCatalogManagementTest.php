@@ -147,6 +147,22 @@ class AdminCatalogManagementTest extends TestCase
             ->assertHasErrors('campusRenameFrom');
     }
 
+    public function test_catalog_list_rows_are_click_to_edit_without_swallowing_the_action_buttons(): void
+    {
+        ResourcePool::factory()->create(['name' => 'Exam Laptops']);
+        Location::factory()->create(['code' => 'R1']);
+
+        Livewire::actingAs($this->admin())
+            ->test(ResourcePoolsIndex::class)
+            ->assertSeeHtml('class="cursor-pointer transition-colors hover:bg-indigo-50/60"')
+            ->assertSeeHtml('wire:click.stop="delete(');
+
+        Livewire::actingAs($this->admin())
+            ->test(LocationsIndex::class)
+            ->assertSeeHtml('class="cursor-pointer transition-colors hover:bg-indigo-50/60"')
+            ->assertSeeHtml('wire:click.stop="toggleEnabled(');
+    }
+
     public function test_resource_pool_json_export_round_trips_through_import(): void
     {
         $pool = ResourcePool::factory()->create(['name' => 'Exam Laptops', 'slug' => 'exam-laptops']);

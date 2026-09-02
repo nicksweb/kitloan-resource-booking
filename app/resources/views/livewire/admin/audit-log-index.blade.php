@@ -17,7 +17,10 @@
 
     <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
         @forelse ($events as $event)
-            <div class="px-5 py-3 text-sm">
+            @php($rowTag = $event->booking ? 'a' : 'div')
+            <{{ $rowTag }}
+                @if ($event->booking) href="{{ route('bookings.show', $event->booking) }}" wire:navigate @endif
+                class="block px-5 py-3 text-sm transition-colors {{ $event->booking ? 'cursor-pointer hover:bg-indigo-50/60' : '' }}">
                 <div class="flex items-center justify-between gap-4">
                     <span class="font-medium text-gray-900">{{ $event->created_at->format('H:i') }} {{ $event->description }}</span>
                     <span class="shrink-0 text-xs text-gray-400">{{ $event->created_at->format('j M Y') }}</span>
@@ -27,10 +30,10 @@
                     @if ($event->actor)<span>by {{ $event->actor->name }}</span>@endif
                     @if ($event->ip_address)<span>{{ $event->ip_address }}</span>@endif
                     @if ($event->booking)
-                        <a href="{{ route('bookings.show', $event->booking) }}" class="text-indigo-600 hover:underline">{{ $event->booking->reference }}</a>
+                        <span class="text-indigo-600">{{ $event->booking->reference }}</span>
                     @endif
                 </div>
-            </div>
+            </{{ $rowTag }}>
         @empty
             <p class="px-5 py-6 text-sm text-gray-500">No audit events match.</p>
         @endforelse

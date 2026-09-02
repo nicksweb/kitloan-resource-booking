@@ -38,6 +38,30 @@ class AuditLogHousekeepingTest extends TestCase
         ]);
     }
 
+    public function test_an_entry_tied_to_a_booking_renders_its_row_as_a_navigable_link(): void
+    {
+        $pool = \App\Models\ResourcePool::factory()->quantityTracked(5)->create();
+        $owner = User::factory()->create();
+        $booking = app(\App\Services\Booking\BookingService::class)->create([
+            'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
+            'start_at' => now()->addDays(2)->setTime(10, 0), 'end_at' => now()->addDays(2)->setTime(11, 0),
+            'notes' => null, 'students' => [],
+            'items' => [['resource_pool_id' => $pool->id, 'quantity' => 1, 'resource_ids' => null]],
+        ], $owner, $owner);
+
+        AuditEvent::create([
+            'event_type' => 'test.event',
+            'description' => 'touched a booking',
+            'booking_id' => $booking->id,
+            'created_at' => now()->toDateTimeString(),
+        ]);
+
+        Livewire::actingAs($this->admin())
+            ->test(AuditLogIndex::class)
+            ->assertSeeHtml('href="'.route('bookings.show', $booking).'"')
+            ->assertSeeHtml('hover:bg-indigo-50/60');
+    }
+
     public function test_clearing_by_range_removes_only_old_entries_and_records_a_marker(): void
     {
         $this->event(now()->subDays(400)->toDateTimeString());

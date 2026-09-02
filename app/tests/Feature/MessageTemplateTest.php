@@ -29,7 +29,7 @@ class MessageTemplateTest extends TestCase
         $this->seed(MessageTemplateSeeder::class);
     }
 
-    private function makeBooking(): Booking
+    private function makeBooking(?string $notes = null): Booking
     {
         $pool = ResourcePool::factory()->quantityTracked(10)->create(['requires_room' => false]);
         $owner = User::factory()->create();
@@ -37,7 +37,7 @@ class MessageTemplateTest extends TestCase
         return app(BookingService::class)->create([
             'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
             'start_at' => now()->addDays(5)->setTime(10, 0), 'end_at' => now()->addDays(5)->setTime(11, 0),
-            'notes' => null, 'students' => [],
+            'notes' => $notes, 'students' => [],
             'items' => [['resource_pool_id' => $pool->id, 'quantity' => 2, 'resource_ids' => null]],
         ], $owner, $owner);
     }
@@ -88,6 +88,38 @@ class MessageTemplateTest extends TestCase
         $subject = app(TemplateRenderer::class)->subject('booking.owner_submitted', ['reference' => 'BK-1'], 'fallback');
 
         $this->assertSame('Hi {{ made_up }} / BK-1', $subject);
+    }
+
+    public function test_user_supplied_token_values_are_html_escaped_in_the_intro(): void
+    {
+        // An admin references a free-text token in the intro; a user puts
+        // markup in the booking's notes. It must not reach the email as live
+        // HTML — the admin's own wording keeps working.
+        MessageTemplate::where('key', 'booking.owner_submitted')
+            ->update(['intro' => 'Details: {{ notes }}', 'enabled' => true]);
+        MessageTemplate::where('key', 'booking.owner_approved')
+            ->update(['intro' => 'Details: {{ notes }}', 'enabled' => true]);
+
+        Mail::fake();
+        $this->makeBooking('<img src=x onerror=alert(1)> <b>hi</b>');
+
+        Mail::assertQueued(BookingNotificationMail::class, function (BookingNotificationMail $mail) {
+            $html = $mail->render();
+
+            return ! str_contains($html, '<img src=x onerror=alert(1)>')
+                && str_contains($html, '&lt;img src=x onerror=alert(1)&gt;');
+        });
+    }
+
+    public function test_subject_token_values_are_not_entity_escaped(): void
+    {
+        MessageTemplate::whereIn('key', ['booking.owner_submitted', 'booking.owner_approved'])
+            ->update(['subject' => 'Booking for {{ requestor_name }}']);
+
+        $renderer = app(TemplateRenderer::class);
+        $subject = $renderer->subject('booking.owner_submitted', ['requestor_name' => 'Tom & Jerry'], 'fallback');
+
+        $this->assertSame('Booking for Tom & Jerry', $subject);
     }
 
     public function test_reset_to_default_restores_the_seed_wording(): void

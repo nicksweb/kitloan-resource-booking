@@ -80,7 +80,9 @@ class TemplateRenderer
             ? $template->subject
             : $fallback;
 
-        return $this->substitute($raw, $tokens);
+        // A subject is a plain-text mail header (Symfony strips CR/LF from it),
+        // never HTML — so don't entity-escape token values here.
+        return $this->substitute($raw, $tokens, escape: false);
     }
 
     /**
@@ -95,7 +97,7 @@ class TemplateRenderer
             return null;
         }
 
-        return $this->substitute($template->intro, $tokens);
+        return $this->substitute($template->intro, $tokens, escape: true);
     }
 
     /** The shared "policy notice" block, or null when disabled/blank. */
@@ -121,12 +123,28 @@ class TemplateRenderer
         return $this->cache[$key] ?? null;
     }
 
-    /** @param  array<string, string>  $tokens */
-    private function substitute(string $text, array $tokens): string
+    /**
+     * @param  array<string, string>  $tokens
+     * @param  bool  $escape  HTML-escape token values before substitution.
+     *
+     * The intro/policy-notice text is raw-echoed (`{!! !!}`) into a Markdown
+     * email whose CommonMark pass passes HTML through, and several tokens
+     * (`notes`, `officer`, `room`, …) carry user-supplied text — so without
+     * escaping, a `<script>` / `<img onerror>` in a booking's notes would land
+     * in the email as live markup. The admin's own template wording keeps its
+     * Markdown formatting. Subjects are plain-text headers and pass escape:false.
+     */
+    private function substitute(string $text, array $tokens, bool $escape = false): string
     {
         return preg_replace_callback(
             '/\{\{\s*([a-z_]+)\s*\}\}/',
-            fn (array $m) => array_key_exists($m[1], $tokens) ? $tokens[$m[1]] : $m[0],
+            function (array $m) use ($tokens, $escape) {
+                if (! array_key_exists($m[1], $tokens)) {
+                    return $m[0];
+                }
+
+                return $escape ? e($tokens[$m[1]]) : $tokens[$m[1]];
+            },
             $text,
         );
     }

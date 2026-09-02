@@ -96,6 +96,18 @@ class MessageTemplateSeeder extends Seeder
                 'subject' => 'Booking confirmed: {{ reference }}',
                 'intro' => 'A new booking was auto-approved — no action needed. A calendar invitation is attached. (Turn this template off to stop these notices.)',
             ],
+            'booking.officer_assigned' => [
+                'label' => 'IT officer — you have been booked',
+                'audience' => 'it',
+                'subject' => 'IT support booking: {{ reference }}',
+                'intro' => "You've been booked to provide IT support ({{ date }}, {{ start_time }}–{{ end_time }}). A calendar invitation is attached.",
+            ],
+            'booking.officer_updated' => [
+                'label' => 'IT officer — your booking changed',
+                'audience' => 'it',
+                'subject' => 'IT support booking updated: {{ reference }}',
+                'intro' => 'An IT support booking you are on has been amended. The current details and an updated calendar invitation are below.',
+            ],
             'booking.daily_summary' => [
                 'label' => 'IT — daily summary',
                 'audience' => 'it',

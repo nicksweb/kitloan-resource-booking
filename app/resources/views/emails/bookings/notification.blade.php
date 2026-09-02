@@ -1,5 +1,9 @@
 <x-mail::message>
-@if ($kind === 'reassigned_to')
+@if ($kind === 'officer_assigned')
+# You've Been Booked
+@elseif ($kind === 'officer_updated')
+# IT Support Booking Updated
+@elseif ($kind === 'reassigned_to')
 # Booking Assigned To You
 @elseif ($kind === 'reassigned_away')
 # Booking Reassigned
@@ -17,6 +21,10 @@
 
 @if (!empty($intro))
 {!! $intro !!}
+@elseif ($kind === 'officer_assigned')
+You've been booked to provide IT support. A calendar invitation is attached.
+@elseif ($kind === 'officer_updated')
+An IT support booking you're on has been amended.
 @elseif ($kind === 'reassigned_to')
 This booking has been assigned to you.
 @elseif ($kind === 'reassigned_away')
@@ -39,8 +47,18 @@ Your booking is coming up tomorrow.
 {{ $booking->start_at->format('g:i A') }} – {{ $booking->end_at->format('g:i A') }}
 
 **Room:** {{ $booking->roomLabel() }}
+@if ($booking->resourcePool->isStaffPool())
+**IT Officer:** {{ $booking->officers()->pluck('name')->join(', ') ?: 'any available officer' }}
+@if ($booking->notes)
+**Issue:** {{ $booking->notes }}
+@endif
+@else
 **Exam Type:** {{ $booking->bookingType?->name ?? '—' }}
 **Resources:** {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }}
+@endif
+@if ($booking->helpdesk_url)
+**Helpdesk ticket:** [{{ $booking->helpdesk_url }}]({{ $booking->helpdesk_url }})
+@endif
 
 @if (!empty($changes))
 **What changed:**

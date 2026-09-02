@@ -15,8 +15,15 @@
 {{ $booking->start_at->format('g:i A') }} – {{ $booking->end_at->format('g:i A') }}
 
 **Room:** {{ $booking->roomLabel() }}
+@if ($booking->resourcePool->isStaffPool())
+**IT Officer:** {{ $booking->officers()->pluck('name')->join(', ') ?: 'any available officer' }}
+@else
 **Exam Type:** {{ $booking->bookingType?->name ?? '—' }}
 **Requested:** {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }}
+@endif
+@if ($booking->helpdesk_url)
+**Helpdesk ticket:** [{{ $booking->helpdesk_url }}]({{ $booking->helpdesk_url }})
+@endif
 @if (!empty($changes))
 **What changed:**
 @foreach ($changes as $change)
@@ -38,7 +45,7 @@ Reject
 View Booking
 </x-mail::button>
 
-These links expire in 7 days and require you to be signed in as IT staff.
+These links expire in 7 days and require you to be signed in as IT staff@if ($booking->resourcePool->isStaffPool()) or the booked officer@endif.
 
 Thanks,<br>
 {{ config('app.name') }}

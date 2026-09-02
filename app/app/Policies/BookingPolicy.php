@@ -16,7 +16,9 @@ class BookingPolicy
 
     public function view(User $user, Booking $booking): bool
     {
-        return $user->hasAnyRole(['it_operator']) || $booking->booked_by_user_id === $user->id;
+        return $user->hasAnyRole(['it_operator'])
+            || $booking->booked_by_user_id === $user->id
+            || $booking->hasOfficer($user);
     }
 
     public function create(User $user): bool
@@ -49,12 +51,12 @@ class BookingPolicy
 
     public function approve(User $user, Booking $booking): bool
     {
-        return $user->hasAnyRole(['administrator', 'it_operator']);
+        return $user->hasAnyRole(['administrator', 'it_operator']) || $booking->hasOfficer($user);
     }
 
     public function reject(User $user, Booking $booking): bool
     {
-        return $user->hasAnyRole(['administrator', 'it_operator']);
+        return $user->hasAnyRole(['administrator', 'it_operator']) || $booking->hasOfficer($user);
     }
 
     public function reallocate(User $user, Booking $booking): bool

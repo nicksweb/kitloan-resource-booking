@@ -27,15 +27,23 @@ class BookingNotifier
 
     public function sendCreated(Booking $booking): void
     {
+        $isStaff = $booking->resourcePool->isStaffPool();
+
+        if ($isStaff) {
+            $this->notifyOfficers($booking, 'officer_assigned');
+        }
+
         if ($booking->approval_status === 'approved') {
             $this->queueToOwner($booking, 'approved');
-            $this->queueConfirmedNoticeToIt($booking);
+            if (! $isStaff) {
+                $this->queueConfirmedNoticeToIt($booking);
+            }
 
             return;
         }
 
         $this->queueToOwner($booking, 'pending');
-        $this->queueToIt($booking);
+        $this->queueApprovalRequest($booking);
     }
 
     public function sendApproved(Booking $booking): void
@@ -81,8 +89,12 @@ class BookingNotifier
             $this->queueToOwner($booking, $booking->approval_status === 'approved' ? 'approved' : 'pending', $changes);
         }
 
+        if ($booking->resourcePool->isStaffPool()) {
+            $this->notifyOfficers($booking, 'officer_updated', $changes);
+        }
+
         if ($booking->approval_status === 'pending') {
-            $this->queueToIt($booking, $changes);
+            $this->queueApprovalRequest($booking, $changes);
         } else {
             $this->queueAmendedFyiToIt($booking, $changes);
         }
@@ -189,6 +201,39 @@ class BookingNotifier
             Mail::to($address)->queue($mail);
         } catch (\Throwable $e) {
             Log::error('Failed to queue booking email', ['context' => $context, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * The approve/reject request. For a staff pool set to route to the booked
+     * officer, it goes to each officer; otherwise (and for equipment) to the IT
+     * team address.
+     *
+     * @param  array<int, string>  $changes
+     */
+    private function queueApprovalRequest(Booking $booking, array $changes = []): void
+    {
+        if ($booking->resourcePool->isStaffPool() && $booking->resourcePool->approval_route === 'assigned_officer') {
+            foreach ($booking->officers() as $officer) {
+                $this->queueMail($officer->email, new BookingApprovalRequestMail($booking, $changes), 'officer-approval');
+            }
+
+            return;
+        }
+
+        $this->queueToIt($booking, $changes);
+    }
+
+    /**
+     * "You've been booked" (and "your booking changed") for each officer on a
+     * staff-pool booking. Always carries the calendar file.
+     *
+     * @param  array<int, string>  $changes
+     */
+    private function notifyOfficers(Booking $booking, string $kind, array $changes = []): void
+    {
+        foreach ($booking->officers() as $officer) {
+            $this->queueMail($officer->email, new BookingNotificationMail($booking, $kind, $changes), 'officer-notice');
         }
     }
 }

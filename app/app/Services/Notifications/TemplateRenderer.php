@@ -30,7 +30,7 @@ class TemplateRenderer
         return [
             'reference', 'requestor_name', 'requestor_email', 'date', 'start_time',
             'end_time', 'room', 'campus', 'pool', 'quantity', 'booking_type',
-            'status', 'notes', 'site_name', 'it_email', 'view_url',
+            'status', 'notes', 'officer', 'helpdesk_url', 'site_name', 'it_email', 'view_url',
         ];
     }
 
@@ -62,6 +62,10 @@ class TemplateRenderer
             'booking_type' => (string) ($booking->bookingType?->name ?? '—'),
             'status' => $status,
             'notes' => (string) ($booking->notes ?? ''),
+            'officer' => $booking->resourcePool->isStaffPool()
+                ? ($booking->officers()->pluck('name')->join(', ') ?: 'any available officer')
+                : '',
+            'helpdesk_url' => (string) ($booking->helpdesk_url ?? ''),
             'site_name' => (string) ($this->settings->get('site_name') ?: config('app.name')),
             'it_email' => (string) ($this->settings->get('it_notification_address') ?? ''),
             'view_url' => URL::temporarySignedRoute('bookings.public-view', now()->addDays(30), ['booking' => $booking->reference]),

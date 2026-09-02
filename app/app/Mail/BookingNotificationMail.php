@@ -34,6 +34,12 @@ class BookingNotificationMail extends Mailable
         if ($this->kind === 'reassigned_away') {
             return 'booking.owner_reassigned_away';
         }
+        if ($this->kind === 'officer_assigned') {
+            return 'booking.officer_assigned';
+        }
+        if ($this->kind === 'officer_updated') {
+            return 'booking.officer_updated';
+        }
 
         if ($this->changes) {
             return 'booking.owner_amended';
@@ -56,6 +62,12 @@ class BookingNotificationMail extends Mailable
         }
         if ($this->kind === 'reassigned_away') {
             return "Booking reassigned: {$ref}";
+        }
+        if ($this->kind === 'officer_assigned') {
+            return "IT support booking: {$ref}";
+        }
+        if ($this->kind === 'officer_updated') {
+            return "IT support booking updated: {$ref}";
         }
 
         if ($this->changes) {
@@ -112,7 +124,7 @@ class BookingNotificationMail extends Mailable
 
     public function attachments(): array
     {
-        if ($this->kind !== 'approved' && $this->kind !== 'reminder') {
+        if (! in_array($this->kind, ['approved', 'reminder', 'officer_assigned', 'officer_updated'], true)) {
             return [];
         }
 

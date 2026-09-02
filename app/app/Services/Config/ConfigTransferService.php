@@ -149,13 +149,15 @@ class ConfigTransferService
             ->orderBy('display_order')->get()
             ->map(fn (ResourcePool $p) => $p->only([
                 'name', 'slug', 'description', 'enabled', 'icon', 'display_order',
-                'allocation_mode', 'quantity_total', 'minimum_lead_time_minutes',
+                'allocation_mode', 'kind', 'approval_route', 'quantity_total', 'minimum_lead_time_minutes',
                 'preparation_buffer_minutes', 'return_buffer_minutes', 'allow_weekends',
                 'allow_out_of_hours', 'requires_room', 'allows_student', 'requires_student',
                 'requires_booking_type', 'auto_approval_enabled', 'booking_reference_prefix',
             ]) + [
                 'deleted' => $p->trashed(),
-                'resources' => $p->resources->map(fn (Resource $r) => $r->only([
+                // Staff-pool "resources" are people, derived on each instance from
+                // users.bookable_as_officer — never exported as resource rows.
+                'resources' => $p->isStaffPool() ? [] : $p->resources->map(fn (Resource $r) => $r->only([
                     'name', 'asset_number', 'serial', 'status', 'source', 'display_order', 'notes',
                 ]) + ['deleted' => $r->trashed()])->all(),
             ])
@@ -304,7 +306,7 @@ class ConfigTransferService
                 ->where('slug', $slug)->orWhere('name', $name)->first();
 
             $attributes = collect($row)->only([
-                'description', 'enabled', 'icon', 'display_order', 'allocation_mode',
+                'description', 'enabled', 'icon', 'display_order', 'allocation_mode', 'kind', 'approval_route',
                 'quantity_total', 'minimum_lead_time_minutes', 'preparation_buffer_minutes',
                 'return_buffer_minutes', 'allow_weekends', 'allow_out_of_hours', 'requires_room',
                 'allows_student', 'requires_student', 'requires_booking_type',

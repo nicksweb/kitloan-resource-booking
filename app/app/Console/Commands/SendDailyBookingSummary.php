@@ -19,7 +19,7 @@ class SendDailyBookingSummary extends Command
         $today = now();
 
         $bookings = Booking::query()
-            ->with(['resourcePool', 'location', 'bookingType', 'items'])
+            ->with(['resourcePool', 'location', 'bookingType', 'items.allocations.resource.user'])
             ->where('lifecycle_status', 'active')
             ->whereDate('start_at', $today)
             ->orderBy('start_at')

@@ -4,7 +4,6 @@ namespace App\Livewire\It;
 
 use App\Models\Booking;
 use App\Models\Resource;
-use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -57,7 +56,7 @@ class Dashboard extends Component
             ->with('resourcePool')
             ->where('lifecycle_status', 'active')
             ->whereDate('start_at', now()->addDay())
-            ->whereHas('resourcePool', fn ($q) => $q->where('allocation_mode', 'individual'))
+            ->whereHas('resourcePool', fn ($q) => $q->where('allocation_mode', 'individual')->where('kind', '!=', 'staff'))
             ->get()
             ->filter(fn (Booking $b) => $b->items->contains(fn ($i) => ! $i->isFullyAllocated()));
 

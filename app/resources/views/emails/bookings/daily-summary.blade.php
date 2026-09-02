@@ -8,7 +8,11 @@
 {{ $bookings->count() }} booking(s) today.
 
 @foreach ($bookings as $booking)
+@if ($booking->resourcePool->isStaffPool())
+**{{ $booking->start_at->format('g:i A') }}–{{ $booking->end_at->format('g:i A') }}** — {{ $booking->roomCode() }} — IT Officer: {{ $booking->officers()->pluck('name')->join(', ') ?: 'any available' }} — {{ ucfirst($booking->approval_status) }} — {{ $booking->reference }}@if ($booking->helpdesk_url) — [ticket]({{ $booking->helpdesk_url }})@endif
+@else
 **{{ $booking->start_at->format('g:i A') }}–{{ $booking->end_at->format('g:i A') }}** — {{ $booking->roomCode() }} — {{ $booking->items->sum('quantity_requested') }} × {{ $booking->resourcePool->name }} ({{ $booking->bookingType?->name ?? 'No type' }}) — {{ ucfirst($booking->approval_status) }} — {{ $booking->reference }}
+@endif
 @if (!$loop->last)
 
 @endif

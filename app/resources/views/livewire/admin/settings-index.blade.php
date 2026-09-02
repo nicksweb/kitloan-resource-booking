@@ -49,9 +49,9 @@
                             <button type="button" wire:click="removeLogo" wire:confirm="Remove the logo and go back to the default mark?" class="text-xs text-red-600 hover:underline">Remove logo</button>
                         </div>
                     @endif
-                    <input type="file" wire:model="logo" accept="image/png,image/jpeg,image/svg+xml" class="mt-1 block w-full text-sm">
+                    <input type="file" wire:model="logo" accept="image/png,image/jpeg,image/webp" class="mt-1 block w-full text-sm">
                     <div wire:loading wire:target="logo" class="text-xs text-gray-500">Uploading&hellip;</div>
-                    <p class="mt-1 text-xs text-gray-400">PNG or SVG, roughly 240&times;64 px (shown ~32 px tall), max 2&nbsp;MB. With no logo set, the built-in mark is used.</p>
+                    <p class="mt-1 text-xs text-gray-400">PNG, JPG or WebP, roughly 240&times;64 px (shown ~32 px tall), max 2&nbsp;MB. With no logo set, the built-in mark is used.</p>
                     @error('logo')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
             </div>

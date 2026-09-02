@@ -128,7 +128,10 @@ class SettingsIndex extends Component
             'referencePrefix' => ['required', 'string', 'max:8'],
             'itNotificationAddress' => ['nullable', 'email'],
             'helpdeskReplyToAddress' => ['nullable', 'email'],
-            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg', 'max:2048'],
+            // SVG deliberately excluded: it can carry inline <script>, and the
+            // logo is served from this origin (and shown on the unauthenticated
+            // login page). Raster only.
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
             'auditRetentionMonths' => ['required', 'integer', 'min:0', 'max:120'],
         ]);
 

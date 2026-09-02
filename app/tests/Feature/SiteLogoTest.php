@@ -6,7 +6,10 @@ use App\Livewire\Admin\SettingsIndex;
 use App\Models\User;
 use App\Settings\SettingsRepository;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -18,6 +21,41 @@ class SiteLogoTest extends TestCase
     {
         parent::setUp();
         $this->seed(RoleSeeder::class);
+        $this->seed(SettingsSeeder::class);
+    }
+
+    private function admin(): User
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('administrator');
+
+        return $admin;
+    }
+
+    public function test_an_svg_logo_upload_is_rejected(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs($this->admin())
+            ->test(SettingsIndex::class)
+            ->set('logo', UploadedFile::fake()->create('evil.svg', 4, 'image/svg+xml'))
+            ->call('save')
+            ->assertHasErrors('logo');
+
+        $this->assertSame('', app(SettingsRepository::class)->get('site_logo_path', ''));
+    }
+
+    public function test_a_png_logo_upload_is_accepted(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs($this->admin())
+            ->test(SettingsIndex::class)
+            ->set('logo', UploadedFile::fake()->image('brand.png', 240, 64))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertNotSame('', app(SettingsRepository::class)->get('site_logo_path', ''));
     }
 
     public function test_default_mark_is_used_when_no_logo_is_set(): void

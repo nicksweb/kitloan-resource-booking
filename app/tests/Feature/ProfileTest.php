@@ -86,6 +86,63 @@ class ProfileTest extends TestCase
         $this->assertDatabaseMissing('resources', ['user_id' => $user->id]);
     }
 
+    public function test_the_theme_defaults_to_system_and_can_be_changed(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('user');
+        $this->assertSame('system', $user->theme);
+
+        Livewire::actingAs($user)->test(Profile::class)
+            ->assertSet('theme', 'system')
+            ->set('theme', 'dark')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame('dark', $user->fresh()->theme);
+    }
+
+    public function test_an_unknown_theme_value_is_rejected(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
+        Livewire::actingAs($user)->test(Profile::class)
+            ->set('theme', 'neon')
+            ->call('save')
+            ->assertHasErrors('theme');
+
+        $this->assertSame('system', $user->fresh()->theme);
+    }
+
+    public function test_changing_the_theme_dispatches_a_browser_event_for_live_preview(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
+        Livewire::actingAs($user)->test(Profile::class)
+            ->set('theme', 'light')
+            ->assertDispatched('theme-changed', theme: 'light');
+    }
+
+    public function test_a_dark_preference_puts_the_class_on_the_html_element(): void
+    {
+        $user = User::factory()->create(['theme' => 'dark']);
+        $user->assignRole('user');
+
+        $html = $this->actingAs($user)->get('/profile')->assertOk()->getContent();
+
+        // The no-flash bootstrap script carries the server value.
+        $this->assertStringContainsString('"dark"', $html);
+        $this->assertStringContainsString("classList.toggle('dark'", $html);
+    }
+
+    public function test_the_sign_in_screen_also_carries_the_theme_bootstrap(): void
+    {
+        $this->get(route('auth.login'))
+            ->assertOk()
+            ->assertSee("classList.toggle('dark'", false);
+    }
+
     public function test_the_daily_summary_opt_out_persists(): void
     {
         $user = User::factory()->create(['receives_daily_summary' => true]);

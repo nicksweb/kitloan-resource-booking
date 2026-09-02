@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Livewire\Admin\AuditLogIndex;
 use App\Models\AuditEvent;
+use App\Models\ResourcePool;
 use App\Models\User;
+use App\Services\Booking\BookingService;
 use App\Settings\SettingsRepository;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,9 +42,9 @@ class AuditLogHousekeepingTest extends TestCase
 
     public function test_an_entry_tied_to_a_booking_renders_its_row_as_a_navigable_link(): void
     {
-        $pool = \App\Models\ResourcePool::factory()->quantityTracked(5)->create();
+        $pool = ResourcePool::factory()->quantityTracked(5)->create();
         $owner = User::factory()->create();
-        $booking = app(\App\Services\Booking\BookingService::class)->create([
+        $booking = app(BookingService::class)->create([
             'resource_pool_id' => $pool->id, 'location_id' => null, 'booking_type_id' => null,
             'start_at' => now()->addDays(2)->setTime(10, 0), 'end_at' => now()->addDays(2)->setTime(11, 0),
             'notes' => null, 'students' => [],

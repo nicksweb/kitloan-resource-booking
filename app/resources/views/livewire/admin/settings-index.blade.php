@@ -1,4 +1,4 @@
-<div class="max-w-2xl">
+<div class="max-w-3xl">
     <x-admin.nav />
     <h1 class="text-2xl font-semibold tracking-tight text-gray-900">Settings</h1>
 

@@ -54,7 +54,7 @@
                     </div>
                 </div>
                 <div class="hidden sm:ml-6 sm:flex sm:items-center sm:gap-4">
-                    <span class="text-sm text-gray-500">{{ auth()->user()->name }}</span>
+                    <a href="{{ route('profile') }}" class="text-sm font-medium {{ request()->routeIs('profile') ? 'text-gray-900' : 'text-gray-500 hover:text-gray-800' }}">{{ auth()->user()->name }}</a>
                     <form method="POST" action="{{ route('auth.logout') }}">
                         @csrf
                         <button type="submit" class="text-sm font-medium text-gray-500 hover:text-gray-800">Sign out</button>
@@ -77,6 +77,7 @@
             @canany(['manage-catalog', 'manage-users', 'manage-settings', 'view-audit-log'])
                 <a href="{{ route('admin.resource-pools.index') }}" class="block py-1 text-sm text-gray-700">Administration</a>
             @endcanany
+            <a href="{{ route('profile') }}" class="block py-1 text-sm text-gray-700">My Profile</a>
             <form method="POST" action="{{ route('auth.logout') }}" class="pt-2 border-t border-gray-100 mt-2">
                 @csrf
                 <button type="submit" class="block py-1 text-sm text-gray-500">Sign out ({{ auth()->user()->name }})</button>

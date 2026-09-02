@@ -26,6 +26,7 @@ use App\Livewire\BookingDetail;
 use App\Livewire\It\Dashboard as ItDashboard;
 use App\Livewire\It\LogisticsView;
 use App\Livewire\MyBookings;
+use App\Livewire\Profile;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('health');
@@ -60,6 +61,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/auth/two-factor/setup', [TwoFactorController::class, 'confirmSetup'])->name('two-factor.setup.confirm');
 
     Route::post('/impersonation/stop', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
+
+    Route::get('/profile', Profile::class)->name('profile');
 
     Route::get('/book/{resourcePool:slug}', BookingWizard::class)->name('booking.wizard');
     Route::get('/bookings/{booking:reference}/edit', BookingEdit::class)->name('bookings.edit');

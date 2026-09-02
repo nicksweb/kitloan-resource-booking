@@ -10,6 +10,14 @@ checkout that stack was built from.
 
 ## Per-release notes
 
+### → 1.6.1
+
+Security hardening; no breaking changes, no migration; standard procedure. Restricts the booking helpdesk
+link to `http`/`https`, HTML-escapes user text substituted into notification-email intros, drops SVG from
+site-logo uploads, and makes the app emit `X-Content-Type-Options` / `Referrer-Policy` itself. See
+[`SECURITY-REVIEW.md`](SECURITY-REVIEW.md). Post-upgrade: if you use an SVG site logo, re-upload it as PNG
+(the old one keeps serving until you do); confirm `/health` shows `1.6.1`.
+
 ### → 1.6.0
 
 No breaking changes, no migration; standard procedure (the `migrate` service still runs

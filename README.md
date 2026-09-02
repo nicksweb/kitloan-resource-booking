@@ -8,6 +8,7 @@ Stack: Laravel 13 / PHP 8.4, PostgreSQL (MySQL/MariaDB also supported), Livewire
 Nginx + PHP-FPM, all behind your existing reverse proxy.
 
 See [docs/BRIEF.md](docs/BRIEF.md) for the original design brief and the reasoning behind the data model,
+[docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md) for the security review notes,
 [CHANGELOG.md](CHANGELOG.md) for release history, and [CONTRIBUTING.md](CONTRIBUTING.md) for the branching and
 pre-deploy workflow this project follows.
 
@@ -485,7 +486,7 @@ in-progress work.
 3. **Pull the target release**:
    ```bash
    git fetch --tags
-   git checkout v1.6.0   # replace with the version you're upgrading to
+   git checkout v1.6.1   # replace with the version you're upgrading to
    ```
 4. **Diff your `.env` against the latest `.env.example`** for any new or renamed variables:
    ```bash

@@ -4,6 +4,34 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.6.1] - 2026-09-02
+
+Security hardening release. No breaking changes, no migration. Came out of a full review of the app's
+auth, authorisation, input handling and headers — the notes on what was checked and what was deliberately
+left are in [`docs/SECURITY-REVIEW.md`](docs/SECURITY-REVIEW.md).
+
+### Fixed
+
+- **Helpdesk ticket link could hold a `javascript:` URL (stored XSS).** The field was validated with a
+  bare `url` rule, which PHP's URL filter accepts for `javascript://%0a…` and other non-web schemes; IT or
+  a booked officer clicking it on the booking page would run script on the app origin. It's now restricted
+  to `http`/`https` on every entry point, and both places it's rendered as a link go through a new
+  `Booking::safeHelpdeskUrl()` guard so a pre-existing row can't render either. (Markdown emails were
+  already safe — CommonMark drops unsafe-scheme links.)
+- **HTML injection into notification emails.** Admin-editable email intro / policy-notice text is
+  raw-rendered into the Markdown mail, and free-text tokens such as `{{ notes }}` carry user input — so a
+  booking's notes could reach the email as live markup. Token *values* are now HTML-escaped in that
+  context; the admin's own Markdown wording is unaffected, and subject lines (plain-text headers) keep raw
+  values.
+- **Site-logo upload accepted SVG.** An SVG can carry inline `<script>` and the logo is served from this
+  origin and shown on the unauthenticated login page. Logo uploads are now PNG / JPG / WebP only.
+
+### Changed
+
+- **The app emits `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin`
+  itself.** Previously these were only present when a CDN / reverse proxy added them; a bare self-host had
+  neither. An edge proxy's own values still take precedence.
+
 ## [1.6.0] - 2026-09-02
 
 No breaking changes, no migration. `kitloan:upgrade` still re-seeds (adds the `show_developer_link`

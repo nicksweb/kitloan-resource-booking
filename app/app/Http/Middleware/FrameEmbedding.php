@@ -41,6 +41,16 @@ class FrameEmbedding
         /** @var Response $response */
         $response = $next($request);
 
+        // Baseline hardening headers, emitted by the app itself so a bare
+        // self-host (no CDN / reverse proxy adding them) is still covered.
+        // Only set when absent, so an edge proxy's own value isn't overridden.
+        if (! $response->headers->has('X-Content-Type-Options')) {
+            $response->headers->set('X-Content-Type-Options', 'nosniff');
+        }
+        if (! $response->headers->has('Referrer-Policy')) {
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        }
+
         $enabled = (bool) $this->settings->get('embedding_enabled', false);
         $origins = $this->allowedOrigins();
 

@@ -19,6 +19,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'oidc_subject' => Str::uuid()->toString(),
             'enabled' => true,
+            'theme' => 'system',
         ];
     }
 

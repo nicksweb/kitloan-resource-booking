@@ -15,11 +15,23 @@ class Profile extends Component
 
     public bool $bookableAsOfficer = false;
 
+    /** light | dark | system */
+    public string $theme = 'system';
+
     public function mount(): void
     {
         $user = auth()->user();
         $this->receivesDailySummary = (bool) $user->receives_daily_summary;
         $this->bookableAsOfficer = (bool) $user->bookable_as_officer;
+        $this->theme = $user->theme ?: 'system';
+    }
+
+    /** Live preview while the radio is being changed; persisted only on save(). */
+    public function updatedTheme(string $value): void
+    {
+        if (in_array($value, ['light', 'dark', 'system'], true)) {
+            $this->dispatch('theme-changed', theme: $value);
+        }
     }
 
     #[Title('My Profile')]
@@ -32,10 +44,15 @@ class Profile extends Component
 
     public function save(StaffResourceSync $sync, AuditLogger $auditLogger): void
     {
+        $this->validate(['theme' => ['required', 'in:light,dark,system']]);
+
         $user = auth()->user();
         $canBeOfficer = $user->hasAnyRole(['it_operator', 'administrator']);
 
-        $attributes = ['receives_daily_summary' => $this->receivesDailySummary];
+        $attributes = [
+            'receives_daily_summary' => $this->receivesDailySummary,
+            'theme' => $this->theme,
+        ];
 
         if ($canBeOfficer) {
             $wasBookable = (bool) $user->bookable_as_officer;
@@ -52,6 +69,10 @@ class Profile extends Component
                 $user,
             );
         }
+
+        // Let the layout script re-resolve .dark on <html> without a reload,
+        // and cache the choice for the (unauthenticated) sign-in screen.
+        $this->dispatch('theme-changed', theme: $this->theme);
 
         session()->flash('success', 'Profile updated.');
     }

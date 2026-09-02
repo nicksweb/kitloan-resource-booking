@@ -4,6 +4,29 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.5.1] - 2026-09-02
+
+No breaking changes, no migration. `kitloan:upgrade` still re-seeds and re-stamps the version.
+
+### Added
+
+- **Set "bookable as an IT officer" from Administration → Users.** The Edit User modal now carries the
+  toggle (shown when the role is IT Operator or Administrator), so an admin can make an IT officer bookable
+  without that person doing it from their own **My Profile** — previously the only route, and impossible for
+  an officer who is themselves an administrator. The change is audited (`users.officer_availability`) and the
+  user list shows an `officer` tag beside the role.
+
+### Changed
+
+- **The Users list rows are clickable.** Hovering a row highlights it and a click anywhere opens the edit
+  modal; the per-row action buttons still do their own thing. Previously only the small "Edit" link worked.
+
+### Fixed
+
+- **Demoting an IT officer to plain User now clears their "bookable" flag** (fail closed) and disables their
+  officer resource rows, so they drop out of availability for new bookings. In-flight bookings keep their
+  allocation, and the assigned officer can still action the approve/reject link routed to them.
+
 ## [1.5.0] - 2026-09-02
 
 No breaking changes. One additive migration (`2026_01_08_000000_staff_bookings`): `resources.user_id`,

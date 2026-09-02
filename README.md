@@ -254,11 +254,13 @@ auto-approved booking. Templates are part of the configuration export/import.
 ### Booking an IT officer
 
 A resource pool has a **kind**: "Equipment" (the default) or **"IT staff"**, whose bookable units are
-people. An IT officer or administrator opts in from **My Profile** ("Make me bookable as an IT officer");
-they then appear as a bookable unit in every IT-staff pool. Any staff member can book an officer for a
-time, room and issue — no equipment attached. Conflict detection, buffers, the `.ics` invite, amend and
-officer substitution all work as they do for equipment, and every officer booking is visible to all IT
-operators.
+people. An IT officer or administrator becomes bookable either by ticking "Make me bookable as an IT
+officer" on their own **My Profile** page, or by an administrator setting it on their behalf in
+**Administration → Users** (the Edit User modal, shown for the IT Operator / Administrator roles). Either
+way they then appear as a bookable unit in every IT-staff pool. Dropping someone's role to plain User
+clears the flag. Any staff member can book an officer for a time, room and issue — no equipment attached.
+Conflict detection, buffers, the `.ics` invite, amend and officer substitution all work as they do for
+equipment, and every officer booking is visible to all IT operators.
 
 Each IT-staff pool routes **approvals** to either the IT team (default — the `it_notification_address`) or
 **the assigned officer** (the booked officer gets the approve/reject email and can action it even with only

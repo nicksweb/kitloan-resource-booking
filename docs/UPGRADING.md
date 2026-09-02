@@ -10,6 +10,13 @@ checkout that stack was built from.
 
 ## Per-release notes
 
+### → 1.5.1
+
+No breaking changes, no migration; standard procedure (the `migrate` service still runs
+`kitloan:upgrade`, which re-seeds and re-stamps the version). Adds the "bookable as an IT officer" toggle
+to **Administration → Users**, makes the user-list rows click-to-edit, and clears a demoted officer's
+bookable flag. Nothing to check post-upgrade beyond the usual `/health` version.
+
 ### → 1.5.0
 
 No breaking changes; standard procedure. One additive migration

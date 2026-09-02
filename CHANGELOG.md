@@ -4,6 +4,39 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.5.0] - 2026-09-02
+
+No breaking changes. One additive migration (`2026_01_08_000000_staff_bookings`): `resources.user_id`,
+`resource_pools.kind` / `resource_pools.approval_route`, `bookings.helpdesk_url`, `users.bookable_as_officer`
+— all nullable / defaulted, and `down()` drops each. `kitloan:upgrade` runs it and re-seeds the message
+templates, so the new email keys (`booking.officer_assigned`, `booking.officer_updated`) backfill on upgrade.
+
+### Added
+
+- **Book an IT officer as a resource.** A new pool **kind**, "IT staff", whose bookable units are people
+  rather than equipment. An IT officer or administrator opts in from the new self-service **My Profile**
+  page ("Make me bookable as an IT officer"); any staff member can then book them for a time, room and
+  issue ("Teams support", "exam room IT help", …) with no kit attached. Conflict detection, buffers,
+  approval, the `.ics` invite, amend, reassign/substitute, the daily summary and every IT view work exactly
+  as they do for equipment.
+  - **Approvals per pool.** "Approvals go to" is either **the IT team** (default, unchanged — the
+    `it_notification_address`) or **the assigned officer** (the booked officer gets the approve/reject
+    email; a `user`-role officer can action it). The booked officer always gets an FYI with the calendar
+    invite, and every officer booking is visible to all IT operators so a colleague can be swapped in if
+    someone's on leave.
+- **Helpdesk ticket link on a booking.** An optional URL field in the booking wizard and amend screen, and
+  a quick inline "add / edit helpdesk link" on the booking detail page that the requestor, IT, **and** the
+  booked officer can edit after the fact. It renders as a clickable link on the detail page, the public
+  view, the notification / approval / amendment emails and the daily summary. New template tokens
+  `{{ officer }}` and `{{ helpdesk_url }}`.
+- **My Profile page** (`/profile`, linked from your name in the nav). Read-only account details, the
+  "email me the daily booking summary" opt-out (previously admin-only), and the IT-officer opt-in.
+
+### Fixed
+
+- **Administration → Settings** rendered narrower than the sibling admin pages; it now matches
+  (`max-w-3xl`).
+
 ## [1.4.0] - 2026-08-27
 
 No breaking changes. One additive migration (`bookings.room_choice`, defaults to `room`); its `down()` works.

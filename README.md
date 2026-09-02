@@ -237,17 +237,40 @@ recorded as theirs, while you stay recorded as who created it (audit: "… creat
 
 **Administration → Emails** edits the wording of every notification: a subject line and an opening paragraph
 per message — for the requestor (submitted / confirmed / declined / reminder / amended / assigned-to-you /
-reassigned-away) and for IT (approval request, amendment FYI, new-booking-auto-approved notice, daily
-summary) — plus a shared **policy notice** that is appended to every requestor email — the place for "all
+reassigned-away), for a booked IT officer (assigned / updated), and for IT (approval request, amendment FYI,
+new-booking-auto-approved notice, daily summary) — plus a shared **policy notice** that is appended to every
+requestor email — the place for "all
 equipment must be returned to IT unless collection has been arranged in advance".
 
-Placeholders like `{{ reference }}`, `{{ date }}`, `{{ room }}`, `{{ pool }}`, `{{ quantity }}` and
-`{{ requestor_name }}` are filled in per booking; unknown placeholders are left as-is. The text is never
-executed as code. The booking-details table and the calendar (`.ics`) attachment are always included (IT
-emails get the `.ics` too; an approval request's event is marked *tentative* until approved). Leave a field
-blank to fall back to the built-in wording; "Reset to default" restores the shipped text. **Turning a
-template off** suppresses that email class where it's optional — e.g. disable `booking.it_confirmed` if IT
-doesn't want a notice for every auto-approved booking. Templates are part of the configuration export/import.
+Placeholders like `{{ reference }}`, `{{ date }}`, `{{ room }}`, `{{ pool }}`, `{{ quantity }}`,
+`{{ requestor_name }}`, `{{ officer }}` (booked IT officer names) and `{{ helpdesk_url }}` are filled in per
+booking; unknown placeholders are left as-is. The text is never executed as code. The booking-details table
+and the calendar (`.ics`) attachment are always included (IT emails get the `.ics` too; an approval
+request's event is marked *tentative* until approved). Leave a field blank to fall back to the built-in
+wording; "Reset to default" restores the shipped text. **Turning a template off** suppresses that email
+class where it's optional — e.g. disable `booking.it_confirmed` if IT doesn't want a notice for every
+auto-approved booking. Templates are part of the configuration export/import.
+
+### Booking an IT officer
+
+A resource pool has a **kind**: "Equipment" (the default) or **"IT staff"**, whose bookable units are
+people. An IT officer or administrator opts in from **My Profile** ("Make me bookable as an IT officer");
+they then appear as a bookable unit in every IT-staff pool. Any staff member can book an officer for a
+time, room and issue — no equipment attached. Conflict detection, buffers, the `.ics` invite, amend and
+officer substitution all work as they do for equipment, and every officer booking is visible to all IT
+operators.
+
+Each IT-staff pool routes **approvals** to either the IT team (default — the `it_notification_address`) or
+**the assigned officer** (the booked officer gets the approve/reject email and can action it even with only
+the `user` role). The booked officer always gets an FYI email with the calendar invite. New templates:
+`booking.officer_assigned`, `booking.officer_updated`.
+
+### Helpdesk ticket link
+
+A booking can carry an optional **helpdesk ticket URL** — set it in the booking wizard or amend screen, or
+inline on the booking detail page. The requestor, IT, and the booked officer can all add or change it after
+the booking exists. It shows as a clickable link on the detail page, the public view, the booking emails
+and the daily summary.
 
 ### Room, pick-up or "to be confirmed"
 
@@ -460,7 +483,7 @@ in-progress work.
 3. **Pull the target release**:
    ```bash
    git fetch --tags
-   git checkout v1.3.0   # replace with the version you're upgrading to
+   git checkout v1.5.0   # replace with the version you're upgrading to
    ```
 4. **Diff your `.env` against the latest `.env.example`** for any new or renamed variables:
    ```bash

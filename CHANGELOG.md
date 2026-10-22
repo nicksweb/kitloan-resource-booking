@@ -4,6 +4,19 @@ All notable changes to Kitloan are documented here. Versions follow [Semantic Ve
 breaking changes bump the major version and are always called out explicitly, since they need extra care on
 upgrade (see [Updating an existing instance](README.md#updating-an-existing-instance)).
 
+## [1.8.1] - 2026-10-22
+
+Security release. No breaking changes, no migration — but the image **must be rebuilt** (`--pull`).
+
+### Security
+
+- **PHP2Shell (CVE-2026-109618 / CVE-2026-109619).** Two PHP runtime bugs (memory-exhaustion state
+  corruption and stale cross-request state) allowing unauthenticated remote code execution against any PHP
+  app. The runtime image is now pinned to `php:8.4.27-fpm-alpine`, the first fixed 8.4 release, instead of
+  the floating `php:8.4-fpm-alpine` tag, so a stale cached base image can't silently ship a vulnerable PHP.
+- New `docker/php/security.ini`: `display_errors=Off`, `expose_php=Off` (no `X-Powered-By` version
+  disclosure) and `session.upload_progress.enabled=Off` (unused — Laravel manages its own sessions).
+
 ## [1.8.0] - 2026-09-03
 
 No breaking changes, no migration. Two new seeded settings

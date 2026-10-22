@@ -10,6 +10,12 @@ checkout that stack was built from.
 
 ## Per-release notes
 
+### → 1.8.1
+
+**Security release — upgrade promptly.** Fixes PHP2Shell (CVE-2026-109618 / CVE-2026-109619) by pinning
+the runtime to PHP 8.4.27. No migration. Rebuild with `--pull` so the new base image is fetched. Afterwards,
+`docker exec resource-booking-app php -v` must report `8.4.27` or later, and `/health` should show `1.8.1`.
+
 ### → 1.8.0
 
 No breaking changes, no migration; standard procedure. `kitloan:upgrade`'s re-seed adds

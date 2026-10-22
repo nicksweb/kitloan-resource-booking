@@ -25,7 +25,10 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage: runtime — PHP-FPM application image
 # ---------------------------------------------------------------------------
-FROM php:8.4-fpm-alpine AS runtime
+# Pinned to a patch release: 8.4.27 is the first 8.4 build fixed for PHP2Shell
+# (CVE-2026-109618 / CVE-2026-109619, pre-auth RCE in the PHP runtime itself).
+# Bump deliberately; never drop below 8.4.27.
+FROM php:8.4.27-fpm-alpine AS runtime
 
 RUN apk add --no-cache \
         bash \
@@ -56,6 +59,7 @@ RUN apk add --no-cache \
 
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+COPY docker/php/security.ini /usr/local/etc/php/conf.d/zz-security.ini
 
 WORKDIR /var/www/html
 
